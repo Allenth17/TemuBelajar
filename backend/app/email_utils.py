@@ -23,7 +23,7 @@ def send_otp(to_email: str, otp: str):
 
     msg = EmailMessage()
     msg.set_content(f"Kode OTP kamu: {otp}")
-    msg["Subject"] = "Verifikasi Email Kampus"
+    msg["Subject"] = "[TemuBelajar] Verifikasi Email Kamu"
     msg["From"] = EMAIL
     msg["To"] = to_email
 
