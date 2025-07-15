@@ -3,10 +3,13 @@ from dotenv import load_dotenv
 from email.message import EmailMessage
 import smtplib
 
-load_dotenv()
+# Ini bakal resolve path ke ".env" di root project
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
+load_dotenv(dotenv_path=env_path)
+
 
 ALLOWED_DOMAINS = [
-    "student.uns.ac.id", "student.ui.ac.id", "student.ugm.ac.id"
+    "student.uns.ac.id", "student.ui.ac.id", "student.ugm.ac.id", "gmail.com"
 ]
 
 def is_valid_campus_email(email: str) -> bool:
@@ -15,6 +18,8 @@ def is_valid_campus_email(email: str) -> bool:
 def send_otp(to_email: str, otp: str):
     EMAIL = os.getenv("SMTP_EMAIL")
     PASSWORD = os.getenv("SMTP_PASS")
+    
+
 
     msg = EmailMessage()
     msg.set_content(f"Kode OTP kamu: {otp}")
@@ -25,3 +30,4 @@ def send_otp(to_email: str, otp: str):
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL, PASSWORD)
         smtp.send_message(msg)
+        

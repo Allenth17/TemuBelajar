@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
-from app.models import RegisterRequest, RegisterResponse
-from app.email_utils import is_valid_campus_email, send_otp
+from backend.app.models import RegisterRequest, RegisterResponse
+from backend.app.email_utils import is_valid_campus_email, send_otp
+
 
 import uuid
 import json

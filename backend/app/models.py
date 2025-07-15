@@ -4,5 +4,11 @@ class RegisterRequest(BaseModel):
     email: EmailStr
 
 class RegisterResponse(BaseModel):
-    success: bool
+    message: str
+
+class VerifyRequest(BaseModel):
+    email: EmailStr
+    otp: str
+
+class VerifyResponse(BaseModel):
     message: str
