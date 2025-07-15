@@ -12,3 +12,7 @@ class VerifyRequest(BaseModel):
 
 class VerifyResponse(BaseModel):
     message: str
+    
+class OtpVerificationRequest(BaseModel):
+    email: EmailStr
+    otp: str
