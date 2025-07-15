@@ -39,16 +39,26 @@ def register(data: RegisterRequest):
 
     with open(DB_FILE, "r+") as file:
         users = json.load(file)
+
+        if data.email in users:
+            raise HTTPException(status_code=409, detail="Email sudah terdaftar")
+
         users[data.email] = {
             "otp": otp,
             "verified": False,
-            "created_at": now  # Simpan waktu OTP dibuat
+            "created_at": now,
+            "password": data.password,
+            "name": data.name,
+            "phone": data.phone,
+            "university": data.university
         }
+
         file.seek(0)
         json.dump(users, file, indent=2)
+        file.truncate()
 
     send_otp(data.email, otp)
-    return {"success": True, "message": "kode OTP dikirim ke email"}
+    return {"success": True, "message": "Kode OTP dikirim ke email"}
 
 from datetime import datetime, timedelta
 
@@ -110,61 +120,52 @@ def resend_otp(request: EmailRequest):
 
 @app.post("/login")
 def login(data: LoginRequest):
-    with open("users.json", "r+") as f:
+    # --- Baca users.json ---
+    if not os.path.exists("users.json"):
+        raise HTTPException(status_code=404, detail="Database tidak ditemukan")
+
+    with open("users.json", "r") as f:
         users = json.load(f)
 
     user = users.get(data.email)
     if not user:
         raise HTTPException(status_code=404, detail="Email tidak ditemukan")
-    
+
     if not user["verified"]:
         raise HTTPException(status_code=403, detail="Email belum diverifikasi")
 
-    if user["otp"] != data.otp:
-        raise HTTPException(status_code=401, detail="OTP salah")
+    if user["password"] != data.password:
+        raise HTTPException(status_code=401, detail="Password salah")
 
     # Update last login
     user["last_login"] = datetime.utcnow().isoformat()
     users[data.email] = user
-    f.seek(0)
-    json.dump(users, f, indent=2)
-    f.truncate()
 
-    # Buat session
+    # --- Tulis balik ke users.json ---
+    with open("users.json", "w") as f:
+        json.dump(users, f, indent=2)
+
+    # --- Bikin sesi login (token) ---
     token = str(uuid.uuid4())
     expired_at = (datetime.utcnow() + timedelta(days=15)).isoformat()
 
     if not os.path.exists("sessions.json"):
-        with open("sessions.json", "w") as f:
-            json.dump({}, f)
+        with open("sessions.json", "w") as sf:
+            json.dump({}, sf)
 
-    with open("sessions.json", "r+") as f:
-        sessions = json.load(f)
-        sessions[token] = {
-            "email": data.email,
-            "expired_at": expired_at
-        }
-        f.seek(0)
-        json.dump(sessions, f, indent=2)
-        f.truncate()
+    with open("sessions.json", "r") as sf:
+        sessions = json.load(sf)
+
+    sessions[token] = {
+        "email": data.email,
+        "expired_at": expired_at
+    }
+
+    with open("sessions.json", "w") as sf:
+        json.dump(sessions, sf, indent=2)
 
     return {"token": token, "expires_in": "15 hari"}
 
-def get_user_by_token(token: str):
-    if not os.path.exists("sessions.json"):
-        return None
-
-    with open("sessions.json", "r") as f:
-        sessions = json.load(f)
-
-    session = sessions.get(token)
-    if not session:
-        return None
-
-    if datetime.fromisoformat(session["expired_at"]) < datetime.utcnow():
-        return None
-
-    return session["email"]
 
 @app.get("/me")
 def get_profile(authorization: str = Header(None)):
@@ -172,11 +173,38 @@ def get_profile(authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="Token tidak ditemukan")
 
     token = authorization.replace("Bearer ", "")
-    email = get_user_by_token(token)
-    if not email:
-        raise HTTPException(status_code=401, detail="Token tidak valid atau sudah expired")
 
-    return {"email": email, "message": "Token masih berlaku"}
+    if not os.path.exists("sessions.json"):
+        raise HTTPException(status_code=401, detail="Sessions tidak ditemukan")
+
+    with open("sessions.json", "r") as sf:
+        sessions = json.load(sf)
+    
+    session = sessions.get(token)
+    if not session:
+        raise HTTPException(status_code=401, detail="Token tidak valid")
+
+    if datetime.fromisoformat(session["expired_at"]) < datetime.utcnow():
+        raise HTTPException(status_code=401, detail="Token sudah kadaluarsa")
+
+    email = session["email"]
+
+    # Ambil data user dari users.json
+    with open("users.json", "r") as f:
+        users = json.load(f)
+    
+    user = users.get(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+
+    return {
+        "email": email,
+        "name": user.get("name"),
+        "phone": user.get("phone"),
+        "university": user.get("university"),
+        "last_login": user.get("last_login"),
+        "message": "Token valid"
+    }
 
 @app.delete("/expired-sessions")
 def cleanup_expired_sessions():
