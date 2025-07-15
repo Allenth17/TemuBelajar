@@ -45,7 +45,7 @@ def register(data: RegisterRequest):
 from datetime import datetime, timedelta
 
 @app.post("/verify-otp")
-def verify_otp(data: VerifyOtpRequest):
+def verify_otp(data: OtpVerificationRequest):
     if not os.path.exists(DB_FILE):
         raise HTTPException(status_code=404, detail="Database tidak ditemukan")
 
