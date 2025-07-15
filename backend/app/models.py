@@ -16,3 +16,10 @@ class VerifyResponse(BaseModel):
 class OtpVerificationRequest(BaseModel):
     email: EmailStr
     otp: str
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    
+class EmailRequest(BaseModel):
+    email: EmailStr

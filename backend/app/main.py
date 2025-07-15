@@ -1,7 +1,15 @@
 from fastapi import FastAPI, HTTPException
-from backend.app.models import RegisterRequest, RegisterResponse
-from backend.app.email_utils import is_valid_campus_email, send_otp
-from backend.app.models import OtpVerificationRequest
+
+from backend.app.models import (
+    RegisterRequest,
+    RegisterResponse,
+    OtpVerificationRequest,
+    LoginRequest,
+    EmailRequest
+)
+from backend.app.email_utils import send_otp, is_valid_campus_email
+
+from fastapi import Header
 
 
 import uuid
@@ -13,7 +21,7 @@ DB_FILE = "users.json"  # Simulasi database
 
 @app.get("/")
 def hello():
-    return {"message : backend is running"}
+    return {"message": "backend is running"}
 
 from datetime import datetime
 
@@ -75,3 +83,114 @@ def verify_otp(data: OtpVerificationRequest):
         json.dump(users, f, indent=2)
 
     return {"message": "OTP berhasil diverifikasi"}
+
+@app.post("/resend-otp")
+def resend_otp(request: EmailRequest):
+    with open("users.json", "r+") as f:
+        users = json.load(f)
+
+    user = users.get(request.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="Email tidak ditemukan")
+
+    if user["verified"]:
+        raise HTTPException(status_code=400, detail="Email sudah diverifikasi")
+
+    otp = str(uuid.uuid4())[:6]
+    user["otp"] = otp
+    user["created_at"] = datetime.utcnow().isoformat()
+    users[request.email] = user
+
+    f.seek(0)
+    json.dump(users, f, indent=2)
+    f.truncate()
+
+    send_otp(request.email, otp)
+    return {"message": "OTP baru telah dikirim"}
+
+@app.post("/login")
+def login(data: LoginRequest):
+    with open("users.json", "r+") as f:
+        users = json.load(f)
+
+    user = users.get(data.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="Email tidak ditemukan")
+    
+    if not user["verified"]:
+        raise HTTPException(status_code=403, detail="Email belum diverifikasi")
+
+    if user["otp"] != data.otp:
+        raise HTTPException(status_code=401, detail="OTP salah")
+
+    # Update last login
+    user["last_login"] = datetime.utcnow().isoformat()
+    users[data.email] = user
+    f.seek(0)
+    json.dump(users, f, indent=2)
+    f.truncate()
+
+    # Buat session
+    token = str(uuid.uuid4())
+    expired_at = (datetime.utcnow() + timedelta(days=15)).isoformat()
+
+    if not os.path.exists("sessions.json"):
+        with open("sessions.json", "w") as f:
+            json.dump({}, f)
+
+    with open("sessions.json", "r+") as f:
+        sessions = json.load(f)
+        sessions[token] = {
+            "email": data.email,
+            "expired_at": expired_at
+        }
+        f.seek(0)
+        json.dump(sessions, f, indent=2)
+        f.truncate()
+
+    return {"token": token, "expires_in": "15 hari"}
+
+def get_user_by_token(token: str):
+    if not os.path.exists("sessions.json"):
+        return None
+
+    with open("sessions.json", "r") as f:
+        sessions = json.load(f)
+
+    session = sessions.get(token)
+    if not session:
+        return None
+
+    if datetime.fromisoformat(session["expired_at"]) < datetime.utcnow():
+        return None
+
+    return session["email"]
+
+@app.get("/me")
+def get_profile(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token tidak ditemukan")
+
+    token = authorization.replace("Bearer ", "")
+    email = get_user_by_token(token)
+    if not email:
+        raise HTTPException(status_code=401, detail="Token tidak valid atau sudah expired")
+
+    return {"email": email, "message": "Token masih berlaku"}
+
+@app.delete("/expired-sessions")
+def cleanup_expired_sessions():
+    now = datetime.utcnow()
+    with open("sessions.json", "r+") as f:
+        sessions = json.load(f)
+        new_sessions = {
+            token: data
+            for token, data in sessions.items()
+            if datetime.fromisoformat(data["expired_at"]) > now
+        }
+        f.seek(0)
+        json.dump(new_sessions, f, indent=2)
+        f.truncate()
+    return {"message": "Expired sessions dibersihkan"}
+
+
