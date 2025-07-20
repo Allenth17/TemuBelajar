@@ -1,3 +1,5 @@
 package com.hiralen.temubelajar
 
-actual class PlatformContext actual constructor()
+import java.awt.Component
+
+actual class PlatformContext(component: Component)

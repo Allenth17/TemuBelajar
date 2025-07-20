@@ -14,7 +14,7 @@ actual class CameraManager actual constructor(
     private var preview: Preview? = null
 
     actual fun startCamera(cameraType: CameraType) {
-        val cameraProviderFuture = ProcessCameraProvider.Companion.getInstance(context)
+        val cameraProviderFuture = ProcessCameraProvider.Companion.getInstance(context.context)
 
         cameraProviderFuture.addListener(
             {
@@ -27,12 +27,12 @@ actual class CameraManager actual constructor(
 
                 cameraProvider?.unbindAll()
                 cameraProvider?.bindToLifecycle(
-                    context as LifecycleOwner,
+                    context.context as LifecycleOwner,
                     cameraSelector,
                     preview
                 )
             },
-            ContextCompat.getMainExecutor(context)
+            ContextCompat.getMainExecutor(context.context)
         )
     }
 
@@ -48,5 +48,4 @@ actual class CameraManager actual constructor(
     fun setSurfaceProvider(provider: Preview.SurfaceProvider) {
         preview?.surfaceProvider = provider
     }
-
 }
