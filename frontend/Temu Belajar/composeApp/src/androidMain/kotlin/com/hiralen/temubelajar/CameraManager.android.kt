@@ -12,40 +12,46 @@ actual class CameraManager actual constructor(
 ) {
     private var cameraProvider: ProcessCameraProvider? = null
     private var preview: Preview? = null
+    private var surfaceProvider: Preview.SurfaceProvider? = null
 
+    @SuppressLint("RestrictedApi", "VisibleForTests")
     actual fun startCamera(cameraType: CameraType) {
-        val cameraProviderFuture = ProcessCameraProvider.Companion.getInstance(context.context)
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context.context)
 
-        cameraProviderFuture.addListener(
-            {
+        cameraProviderFuture.addListener({
+            try {
                 cameraProvider = cameraProviderFuture.get()
                 val cameraSelector = when (cameraType) {
                     CameraType.BACK -> CameraSelector.DEFAULT_BACK_CAMERA
                     CameraType.FRONT -> CameraSelector.DEFAULT_FRONT_CAMERA
                 }
-                preview = Preview.Builder().build()
 
+                // 1. Buat preview
+                preview = Preview.Builder().build().apply {
+                    // Gunakan surface provider jika sudah tersedia
+                    surfaceProvider?.let { surfaceProvider = it }
+                }
+
+                // 2. Setup use case
                 cameraProvider?.unbindAll()
                 cameraProvider?.bindToLifecycle(
                     context.context as LifecycleOwner,
                     cameraSelector,
                     preview
                 )
-            },
-            ContextCompat.getMainExecutor(context.context)
-        )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }, ContextCompat.getMainExecutor(context.context))
     }
 
     actual fun stopCamera() {
         cameraProvider?.unbindAll()
     }
 
-    @SuppressLint("RestrictedApi", "VisibleForTests")
-    fun getSurfaceProvider() : Preview.SurfaceProvider? {
-        return preview?.surfaceProvider
-    }
-
     fun setSurfaceProvider(provider: Preview.SurfaceProvider) {
+        surfaceProvider = provider
+        // Update preview jika sudah diinisialisasi
         preview?.surfaceProvider = provider
     }
 }
