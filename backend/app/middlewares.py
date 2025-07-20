@@ -14,3 +14,4 @@ def require_auth(request: Request):
 
     # bisa juga return user_id jika mau pakai nanti
     return sessions[token]["email"]
+
