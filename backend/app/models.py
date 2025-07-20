@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr
 
 class RegisterRequest(BaseModel):
     email: EmailStr
+    username: str
     password: str
     name: str
     phone: str
@@ -22,7 +23,7 @@ class OtpVerificationRequest(BaseModel):
     otp: str
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email_or_username: str
     password: str
     
 class EmailRequest(BaseModel):
