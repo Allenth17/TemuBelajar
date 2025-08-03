@@ -1,17 +1,13 @@
 from fastapi import FastAPI, HTTPException
-
-from backend.app.models import (
-    RegisterRequest,
+from backend.app.models import 
+(   RegisterRequest,
     RegisterResponse,
     OtpVerificationRequest,
     LoginRequest,
-    EmailRequest
-)
+    EmailRequest)
 from backend.app.email_utils import send_otp, is_valid_campus_email
-
 from fastapi import Header
-
-
+from datetime import datetime, timedelta
 import uuid
 import json
 import os
@@ -60,7 +56,7 @@ def register(data: RegisterRequest):
     send_otp(data.email, otp)
     return {"success": True, "message": "Kode OTP dikirim ke email"}
 
-from datetime import datetime, timedelta
+
 
 @app.post("/verify-otp")
 def verify_otp(data: OtpVerificationRequest):

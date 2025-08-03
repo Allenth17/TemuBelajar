@@ -13,15 +13,23 @@ androidx-testExt = "1.2.1"
 cameraCamera2 = "1.4.2"
 composeHotReload = "1.0.0-alpha11"
 composeMultiplatform = "1.8.2"
+ffmpegPlatform = "5.0-1.5.8"
+javacvPlatform = "1.5.8"
 junit = "4.13.2"
 kotlin = "2.2.0"
 kotlinx-coroutines = "1.10.2"
+opencvPlatform = "4.5.5-1.5.8"
 webcamCapture = "0.3.12"
+perm = "0.37.2"
+compose-material-icons-extended = "1.7.8"
+
 
 [libraries]
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCamera2" }
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "cameraCamera2" }
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraCamera2" }
+ffmpeg-platform = { module = "org.bytedeco:ffmpeg-platform", version.ref = "ffmpegPlatform" }
+javacv-platform = { module = "org.bytedeco:javacv-platform", version.ref = "javacvPlatform" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -34,9 +42,13 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+opencv-platform = { module = "org.bytedeco:opencv-platform", version.ref = "opencvPlatform" }
 webcam-capture = { module = "com.github.sarxos:webcam-capture", version.ref = "webcamCapture" }
 webcam-capture-driver-opencv = { module = "com.github.sarxos:webcam-capture-driver-opencv", version.ref = "webcamCapture" }
 webcam-capture-driver-v4l4j = { module = "com.github.sarxos:webcam-capture-driver-v4l4j", version.ref = "webcamCapture" }
+accompanist-permission = { module="com.google.accompanist:accompanist-permissions", version.ref="perm" }
+compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "compose-material-icons-extended" }
+
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

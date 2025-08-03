@@ -1,3 +1,4 @@
+import org.gradle.declarative.dsl.schema.FqName.Empty.packageName
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -40,6 +41,8 @@ kotlin {
             implementation(libs.androidx.camera.camera2)
             implementation(libs.androidx.camera.lifecycle)
             implementation(libs.androidx.camera.view)
+            implementation(libs.compose.material.icons.extended)
+            implementation(libs.accompanist.permission)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -60,6 +63,11 @@ kotlin {
             implementation(libs.webcam.capture) // Library utama
             implementation(libs.webcam.capture.driver.v4l4j) // Driver Linux
             implementation(libs.webcam.capture.driver.opencv) // Driver OpenCV
+            implementation(libs.javacv.platform)
+            implementation(libs.opencv.platform)
+            implementation(libs.ffmpeg.platform)
+            implementation(libs.compose.material.icons.extended)
+
         }
     }
 }

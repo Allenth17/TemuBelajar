@@ -6,5 +6,7 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
     <string>This app needs access to your camera for video preview</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Photo Library permission is required for the app to work.</string>
 </dict>
 </plist>
