@@ -1,0 +1,59 @@
+import json
+from pathlib import Path
+import os
+import json
+from datetime import datetime, timedelta
+
+STREAM_FILE = Path(__file__).resolve().parent / "active_streams.json"
+
+
+def load_streams():
+    if not STREAM_FILE.exists():
+        with open(STREAM_FILE, "w") as f:
+            json.dump({}, f)
+    with open(STREAM_FILE) as f:
+        return json.load(f)
+
+def save_streams(data):
+    with open(STREAM_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+def add_stream(user_id: str, stream_url: str):
+    data = load_streams()
+    data[user_id] = {
+        "stream_url": stream_url,
+        "last_seen": datetime.utcnow().isoformat()
+    }
+    save_streams(data)
+
+
+def remove_stream(user_id: str):
+    data = load_streams()
+    if user_id in data:
+        del data[user_id]
+    save_streams(data)
+
+def get_stream(user_id: str):
+    data = load_streams()
+    return data.get(user_id)
+
+def cleanup_streams(timeout_minutes: int = 5):
+    if not os.path.exists(STREAM_FILE):
+        return
+
+    with open(STREAM_FILE, "r") as f:
+        data = json.load(f)
+
+    now = datetime.utcnow()
+    cleaned_data = {}
+
+    for user_id, stream_info in data.items():
+        last_seen_str = stream_info.get("last_seen")
+        if not last_seen_str:
+            continue
+        last_seen = datetime.fromisoformat(last_seen_str)
+        if now - last_seen < timedelta(minutes=timeout_minutes):
+            cleaned_data[user_id] = stream_info
+
+    with open(STREAM_FILE, "w") as f:
+        json.dump(cleaned_data, f, indent=4)

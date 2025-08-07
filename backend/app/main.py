@@ -6,8 +6,17 @@ from backend.app.models import (
     LoginRequest,
     EmailRequest
 )
+from backend.app.models import MatchRequest
+from backend.app.stream_manager import add_stream, get_stream
+from backend.app.stream_manager import add_stream
+from fastapi import WebSocket, WebSocketDisconnect  
+from backend.app import signaling
+from backend.app.stream_manager import get_stream
 from backend.app.email_utils import send_otp, is_valid_campus_email
 from datetime import datetime, timedelta
+from backend.app.matchmaking import add_to_queue, remove_from_queue
+from backend.app.stream_manager import remove_stream
+
 import uuid
 import json
 import os
@@ -261,3 +270,69 @@ def cleanup_expired_sessions():
         f.truncate()
         json.dump(new_sessions, f, indent=2)
     return {"message": "Expired sessions dibersihkan"}
+
+# WebSocket endpoint for matchmaking
+app.include_router(signaling.router)
+
+@app.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    await ws.accept()
+    await add_to_queue(ws)
+
+    try:
+        while True:
+            data = await ws.receive_text()
+            # proses data signaling seperti biasa
+    except WebSocketDisconnect:
+        await remove_from_queue(ws)
+
+# Endpoint to add user to matchmaking queue
+@app.get("/get_stream/{user_id}")
+def fetch_stream(user_id: str):
+    stream = get_stream(user_id)
+    if not stream:
+        raise HTTPException(status_code=404, detail="No stream found.")
+    return stream
+
+# Endpoint to match user and return stream URL
+@app.post("/match")
+def match_user(request: MatchRequest):
+    user_id = request.user_id
+    stream_url = request.stream_url
+
+    # Ganti ini pakai logic match kamu sendiri
+    target_user_id = find_match(user_id)
+
+    if not target_user_id:
+        raise HTTPException(status_code=404, detail="No match found.")
+
+    # Simpan stream URL user
+    add_stream(user_id, stream_url)
+
+    # Cek apakah target udah punya stream
+    target_stream = get_stream(target_user_id)
+    if target_stream:
+        return {
+            "matched_with": target_user_id,
+            "target_stream": target_stream
+        }
+
+    return {
+        "matched_with": target_user_id,
+        "message": "Waiting for target stream..."
+    }
+
+# Endpoint to remove user from streaming
+@app.post("/disconnect/{user_id}")
+def disconnect_user(user_id: str):
+    removed = remove_stream(user_id)
+    if not removed:
+        raise HTTPException(status_code=404, detail="User not streaming.")
+    return {"message": f"User {user_id} disconnected."}
+
+# Endpoint to list all active streams
+@app.get("/streams")
+def list_streams():
+    streams = load_streams()  # dari stream_manager
+    return streams
+

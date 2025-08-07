@@ -47,3 +47,7 @@ class LoginRequest(BaseModel):
     
 class EmailRequest(BaseModel):
     email: EmailStr
+
+class MatchRequest(BaseModel):
+    user_id: str
+    stream_url: str
