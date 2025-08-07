@@ -6,6 +6,7 @@ from backend.app.models import (
     LoginRequest,
     EmailRequest
 )
+from backend.app.signaling.manager import signaling_manager
 from backend.app.models import MatchRequest
 from backend.app.stream_manager import add_stream, get_stream
 from backend.app.stream_manager import add_stream
@@ -272,7 +273,7 @@ def cleanup_expired_sessions():
     return {"message": "Expired sessions dibersihkan"}
 
 # WebSocket endpoint for matchmaking
-app.include_router(signaling.router)
+#app.include_router(signaling.router)
 
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
@@ -336,3 +337,7 @@ def list_streams():
     streams = load_streams()  # dari stream_manager
     return streams
 
+# WebSocket endpoint for signaling
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    await signaling_manager.connect(user_id, websocket)
