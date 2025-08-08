@@ -3,3 +3,5 @@ uvicorn
 python-dotenv
 email-validator
 bcrypt
+pydantic-settings
+python-jose[cryptography]
