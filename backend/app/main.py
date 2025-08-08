@@ -61,6 +61,10 @@ def auth_required(authorization: str = Header(None)):
 
     return session["email"]
 
+# Matchmaking endpoint
+def find_match(user_id: str):
+    # Dummy logic, replace with your own
+    return None
 
 @app.get("/")
 def hello():
