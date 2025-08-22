@@ -1,4 +1,6 @@
 from fastapi import FastAPI, HTTPException, Header, Request, Depends
+from fastapi.openapi.utils import get_openapi
+from backend.app.middleware.error_handler import error_handler
 from backend.app.models import (
     RegisterRequest,
     RegisterResponse,
@@ -6,23 +8,54 @@ from backend.app.models import (
     LoginRequest,
     EmailRequest
 )
+from backend.app.signaling_manager.manager import signaling_manager
+from backend.app import signaling
 from backend.app.models import MatchRequest
 from backend.app.stream_manager import add_stream, get_stream
-from backend.app.stream_manager import add_stream
-from fastapi import WebSocket, WebSocketDisconnect  
-from backend.app import signaling
-from backend.app.stream_manager import get_stream
+from fastapi import WebSocket, WebSocketDisconnect
 from backend.app.email_utils import send_otp, is_valid_campus_email
 from datetime import datetime, timedelta
 from backend.app.matchmaking import add_to_queue, remove_from_queue
 from backend.app.stream_manager import remove_stream
+from fastapi.requests import Request
+from fastapi.exceptions import RequestValidationError
 
 import uuid
 import json
 import os
 import bcrypt
 
-app = FastAPI()
+app = FastAPI(
+    title="TemuBelajar API",
+    description="API for TemuBelajar video chat application",
+    version="1.0.0"
+)
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+        
+    openapi_schema = get_openapi(
+        title="TemuBelajar API",
+        version="1.0.0",
+        description="API for TemuBelajar video chat application",
+        routes=app.routes,
+    )
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
+
+
+# Register error_handler as an exception handler
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    return await error_handler(request, exc)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return await error_handler(request, exc)
 
 DB_FILE = "users.json"
 SESSION_FILE = "sessions.json"
@@ -60,6 +93,10 @@ def auth_required(authorization: str = Header(None)):
 
     return session["email"]
 
+# Matchmaking endpoint
+def find_match(user_id: str):
+    # Dummy logic, replace with your own
+    return None
 
 @app.get("/")
 def hello():
@@ -336,3 +373,4 @@ def list_streams():
     streams = load_streams()  # dari stream_manager
     return streams
 
+# The signaling WebSocket endpoint is now handled by the signaling router

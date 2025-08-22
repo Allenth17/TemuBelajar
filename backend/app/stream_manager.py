@@ -37,6 +37,25 @@ def get_stream(user_id: str):
     data = load_streams()
     return data.get(user_id)
 
+def update_stream_status(user_id: str, status: str) -> bool:
+    """Update stream status for a user"""
+    data = load_streams()
+    if user_id not in data:
+        return False
+        
+    data[user_id]["status"] = status
+    data[user_id]["updated_at"] = datetime.utcnow().isoformat()
+    save_streams(data)
+    return True
+
+def get_active_streams() -> dict:
+    """Get all active streams"""
+    data = load_streams()
+    return {
+        uid: info for uid, info in data.items() 
+        if info.get("status") == "active"
+    }
+
 def cleanup_streams(timeout_minutes: int = 5):
     if not os.path.exists(STREAM_FILE):
         return
