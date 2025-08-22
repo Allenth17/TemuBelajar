@@ -3,11 +3,33 @@
     "otp": "070a79",
     "verified": true,
     "created_at": "2025-07-20T17:58:07.603600",
-    "password": "$2b$12$O0A1w3RWVuldSN5NzvnyteTl1VQKrmDQ3DIhTlcHhon1HtdRTg9sy",
+    "password": "$2b$12$58cMMeXa2lMB31IzcMrk9u3WFDHoUga5KbRrFnaD0W1.mz2.PetSK",
     "name": "string",
     "phone": "string",
     "university": "string",
     "username": "hiraga",
-    "last_login": "2025-07-20T17:59:21.558288"
+    "last_login": "2025-08-17T19:35:53.158579"
+  },
+  "user2@gmail.com": {
+    "otp": "c57bfc",
+    "verified": true,
+    "created_at": "2025-08-17T18:01:02.985019",
+    "password": "$2b$12$58cMMeXa2lMB31IzcMrk9u3WFDHoUga5KbRrFnaD0W1.mz2.PetSK",
+    "name": "string",
+    "phone": "string",
+    "university": "string",
+    "username": "string2",
+    "last_login": "2025-08-17T19:21:59.411091"
+  },
+  "allul1712@gmail.com": {
+    "otp": "7d8569",
+    "verified": true,
+    "created_at": "2025-08-20T18:05:04.502627",
+    "password": "$2b$12$oo.VLGJazWb7Buzb37T83O5KO6B9lN/LOQW3/F4X3tltKm91WavOK",
+    "name": "Thiflul",
+    "phone": "081280898820",
+    "university": "terbuka",
+    "username": "Allenth",
+    "last_login": "2025-08-22T11:50:59.655574"
   }
 }

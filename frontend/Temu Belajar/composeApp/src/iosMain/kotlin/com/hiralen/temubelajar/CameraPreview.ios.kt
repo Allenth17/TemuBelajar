@@ -56,8 +56,7 @@ actual fun CameraView() {
         factory = {
             val container = UIView()
 
-            container
-                .layer
+            container.layer
                 .addSublayer(cameraPreviewLayer)
 
             cameraPreviewLayer
@@ -78,8 +77,7 @@ actual fun CameraView() {
                 CATransaction
                     .setValue(true, kCATransactionDisableActions)
 
-                container
-                    .layer
+                container.layer
                     .setFrame(rect)
 
                 cameraPreviewLayer

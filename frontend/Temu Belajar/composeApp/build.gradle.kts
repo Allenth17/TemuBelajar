@@ -9,6 +9,9 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.jetbrains.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 kotlin {
@@ -31,7 +34,11 @@ kotlin {
     }
     
     jvm("desktop")
-    
+
+    room {
+        schemaDirectory("$projectDir/schemas")
+    }
+
     sourceSets {
         val desktopMain by getting
         
@@ -43,6 +50,9 @@ kotlin {
             implementation(libs.androidx.camera.view)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.accompanist.permission)
+            implementation(libs.koin.android)
+            implementation(libs.koin.androidx.compose)
+            implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -53,6 +63,27 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+
+            implementation(libs.jetbrains.compose.navigation)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.sqlite.bundled)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+            api(libs.koin.core)
+//            implementation(libs.compose.material.icons.extended)
+            implementation(libs.bundles.ktor)
+            implementation(libs.bundles.coil)
+            implementation(libs.compose.icons.cssGg)
+            implementation(libs.compose.icons.weatherIcons)
+            implementation(libs.compose.icons.evaIcons)
+            implementation(libs.compose.icons.feather)
+            implementation(libs.compose.icons.fontAwesome)
+            implementation(libs.compose.icons.lineAwesome)
+            implementation(libs.compose.icons.linea)
+            implementation(libs.compose.icons.octicons)
+            implementation(libs.compose.icons.simpleIcons)
+            implementation(libs.compose.icons.tablerIcons)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -66,8 +97,14 @@ kotlin {
             implementation(libs.javacv.platform)
             implementation(libs.opencv.platform)
             implementation(libs.ffmpeg.platform)
-            implementation(libs.compose.material.icons.extended)
+            implementation(libs.ktor.client.okhttp)
+        }
+        nativeMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
 
+        dependencies {
+            ksp(libs.androidx.room.compiler)
         }
     }
 }

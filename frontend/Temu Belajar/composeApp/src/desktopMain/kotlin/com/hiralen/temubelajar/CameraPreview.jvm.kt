@@ -5,8 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -23,6 +21,8 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.dp
 import com.hiralen.temubelajar.util.flipHorizontal
+import compose.icons.FeatherIcons
+import compose.icons.feathericons.Camera
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.bytedeco.javacv.Java2DFrameConverter
@@ -116,7 +116,7 @@ internal fun CameraPreview() {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Videocam,
+                    imageVector = FeatherIcons.Camera,
                     contentDescription = "Loading Camera",
                     tint = Color.White,
                     modifier = Modifier.size(64.dp)

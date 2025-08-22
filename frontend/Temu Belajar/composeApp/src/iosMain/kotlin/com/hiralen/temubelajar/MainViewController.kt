@@ -1,6 +1,13 @@
 package com.hiralen.temubelajar
 
 import androidx.compose.ui.window.ComposeUIViewController
-import platform.UIKit.UIViewController
+import com.hiralen.temubelajar.app.App
+import com.hiralen.temubelajar.di.initKoin
 
-fun MainViewController() = ComposeUIViewController { App() }
+fun MainViewController() = ComposeUIViewController(
+    configure = {
+        initKoin()
+    }
+) {
+    App()
+}

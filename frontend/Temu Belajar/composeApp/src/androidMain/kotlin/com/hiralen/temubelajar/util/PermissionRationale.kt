@@ -17,7 +17,9 @@ internal fun PermissionRationale(
             Text("Camera Permission Required")
         },
         text = {
-            Text("This app needs access to your camera to function properly. Please grant the permission.")
+            Text(
+                text = "This app needs access to your camera to function properly. Please grant the permission."
+            )
         },
         confirmButton = {
             Button(

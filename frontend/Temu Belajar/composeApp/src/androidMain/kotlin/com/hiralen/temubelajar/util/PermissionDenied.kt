@@ -33,7 +33,7 @@ internal fun PermissionDenied(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            "To use the camera feature, please enable the permission in app settings",
+            text = "To use the camera feature, please enable the permission in app settings",
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(24.dp))
