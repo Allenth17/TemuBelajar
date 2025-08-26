@@ -13,6 +13,7 @@ import com.hiralen.temubelajar.auth.domain.Message
 import com.hiralen.temubelajar.auth.presentation.login.LoginState
 import com.hiralen.temubelajar.auth.presentation.me.MeState
 import com.hiralen.temubelajar.auth.presentation.otp.OTPState
+import com.hiralen.temubelajar.auth.presentation.otp.ROTPState
 import com.hiralen.temubelajar.auth.presentation.register.RegisterState
 import com.hiralen.temubelajar.core.domain.Result
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,7 @@ class AuthViewModel(
     init {
         checkSession()
     }
+
     private var username        : String = ""
     private var password        : String = ""
     private var confirmPassword : String = ""
@@ -36,6 +38,7 @@ class AuthViewModel(
     private var phone           : String = ""
     private var university      : String = ""
     private var otp             : String = ""
+
     private val _emailState = MutableStateFlow("")
     val emailState: StateFlow<String> = _emailState
 
@@ -47,6 +50,9 @@ class AuthViewModel(
 
     private val _otpState = MutableStateFlow<OTPState<Message>>(OTPState.Idle)
     val otpState: StateFlow<OTPState<Message>> = _otpState.asStateFlow()
+
+    private val _rOtpState = MutableStateFlow<ROTPState<Message>>(ROTPState.Idle)
+    val rOtpState: StateFlow<ROTPState<Message>> = _rOtpState.asStateFlow()
 
     private val _meState = MutableStateFlow<MeState<Account>>(MeState.Idle)
     val meState: StateFlow<MeState<Account>> = _meState.asStateFlow()
@@ -61,8 +67,6 @@ class AuthViewModel(
     fun updatePhone           (phone           : String) { this.phone           = phone.trim()           }
     fun updateUniversity      (university      : String) { this.university      = university.trim()      }
     fun updateOtp             (otp             : String) { this.otp             = otp.trim()             }
-
-
 
     fun resetRegisterState() { _registerState.value = RegisterState.Idle }
     fun resetOtpState() { _otpState.value = OTPState.Idle }
@@ -117,6 +121,22 @@ class AuthViewModel(
         }
     }
 
+    fun resendOtp() {
+        viewModelScope.launch {
+            _rOtpState.value = ROTPState.Loading
+            val result = accountRepository.resendOtp(
+                email = email
+            )
+            when (result) {
+                is Result.Success -> {
+                    _rOtpState.value = ROTPState.Success(result.data)
+                }
+                is Result.Error -> {
+                    _rOtpState.value = ROTPState.Error(result.error.toString())
+                }
+            }
+        }
+    }
     private fun validateForm() : Boolean {
         return when {
             username.isEmpty() -> {
@@ -181,17 +201,24 @@ class AuthViewModel(
 
     fun me() {
         viewModelScope.launch {
-            accountRepository.me(
-                token = getStoredToken()?.toString() ?: ""
-            )
+            val token = getStoredToken()
+            when {
+                token != null -> {
+                    accountRepository.me(token)
+                }
+            }
         }
     }
 
     fun logout() {
         viewModelScope.launch {
-            accountRepository.logout(
-                token = getStoredToken()?.toString() ?: ""
-            )
+            val token = getStoredToken()
+            when {
+                token != null -> {
+                    accountRepository.logout(token)
+                    accountRepository.clearToken(token)
+                }
+            }
         }
     }
 
@@ -214,9 +241,6 @@ class AuthViewModel(
                 destination = Destination.RegisterPage,
                 navOptions = {
                     popUpTo(Destination.LoginPage) {
-                        inclusive = true
-                    }
-                    popUpTo(Destination.OTPPage) {
                         inclusive = true
                     }
                 }
@@ -250,15 +274,30 @@ class AuthViewModel(
     suspend fun getStoredToken(): String? {
         return accountRepository.getToken()?.token
     }
-    suspend fun isLoggedIn(): Boolean {
-        return accountRepository.getToken() != null
-    }
     fun checkSession() {
         viewModelScope.launch {
-            if (isLoggedIn()) {
-                navigateToHome()
+            try {
+                val token = getStoredToken()
+                when {
+                    token != null -> {
+                        val result = accountRepository.me(token)
+                        when (result) {
+                            is Result.Success -> {
+                                navigateToHome()
+                            }
+                            is Result.Error -> {
+                                accountRepository.clearToken(token)
+                                navigateToLogin()
+                            }
+                        }
+                    }
+                    else -> {
+                        navigateToLogin()
+                    }
+                }
+            } catch(e: Exception) {
+                navigateToLogin()
             }
         }
-
     }
 }

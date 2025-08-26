@@ -9,7 +9,8 @@ load_dotenv(dotenv_path=env_path)
 
 
 ALLOWED_DOMAINS = [
-    "student.uns.ac.id", "student.ui.ac.id", "student.ugm.ac.id", "gmail.com"
+    "student.uns.ac.id", "student.ui.ac.id", "student.ugm.ac.id", "gmail.com",
+    "ut.ac.id"
 ]
 
 def is_valid_campus_email(email: str) -> bool:

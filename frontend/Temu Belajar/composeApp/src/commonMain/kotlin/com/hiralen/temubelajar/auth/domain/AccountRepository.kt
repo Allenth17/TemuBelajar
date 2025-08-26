@@ -14,16 +14,20 @@ interface AccountRepository {
         otp: String
     ) : Result<Message, DataError.Remote>
 
+    suspend fun resendOtp(
+        email: String
+    ) : Result<Message, DataError.Remote>
+
     suspend fun login(
         accountLogin: AccountLogin
     ) : Result<LoginResponse, DataError.Remote>
 
     suspend fun me(
-        token: String
+        token: String?
     ) : Result<Account, DataError.Remote>
 
     suspend fun logout(
-        token: String
+        token: String?
     ) : Result<Message, DataError.Remote>
 
     suspend fun getToken(): Token?

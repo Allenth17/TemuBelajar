@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,9 +42,11 @@ fun OTPScreen(
     modifier: Modifier = Modifier
 ) {
     val otpState by viewModel.otpState.collectAsStateWithLifecycle()
+    val rOtpState by viewModel.rOtpState.collectAsStateWithLifecycle()
     val otp = rememberSaveable { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
     val email by viewModel.emailState.collectAsStateWithLifecycle()
+    val snackbarState = remember { SnackbarHostState() }
 
     LaunchedEffect(
         otp.value
@@ -119,7 +122,7 @@ fun OTPScreen(
             Spacer(modifier = Modifier.width(16.dp))
 
             TextButton(
-                onClick = { /* Handle resend OTP */ },
+                onClick = { viewModel.resendOtp() },
                 modifier = Modifier.weight(0.3f)
             ) {
                 Text(

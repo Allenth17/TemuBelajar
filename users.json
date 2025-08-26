@@ -1,35 +1,63 @@
 {
-  "kocakgaming9876@gmail.com": {
-    "otp": "070a79",
-    "verified": true,
-    "created_at": "2025-07-20T17:58:07.603600",
-    "password": "$2b$12$58cMMeXa2lMB31IzcMrk9u3WFDHoUga5KbRrFnaD0W1.mz2.PetSK",
-    "name": "string",
-    "phone": "string",
-    "university": "string",
-    "username": "hiraga",
-    "last_login": "2025-08-17T19:35:53.158579"
-  },
-  "user2@gmail.com": {
-    "otp": "c57bfc",
-    "verified": true,
-    "created_at": "2025-08-17T18:01:02.985019",
-    "password": "$2b$12$58cMMeXa2lMB31IzcMrk9u3WFDHoUga5KbRrFnaD0W1.mz2.PetSK",
-    "name": "string",
-    "phone": "string",
-    "university": "string",
-    "username": "string2",
-    "last_login": "2025-08-17T19:21:59.411091"
-  },
-  "allul1712@gmail.com": {
-    "otp": "7d8569",
-    "verified": true,
-    "created_at": "2025-08-20T18:05:04.502627",
-    "password": "$2b$12$oo.VLGJazWb7Buzb37T83O5KO6B9lN/LOQW3/F4X3tltKm91WavOK",
-    "name": "Thiflul",
-    "phone": "081280898820",
-    "university": "terbuka",
-    "username": "Allenth",
-    "last_login": "2025-08-22T11:50:59.655574"
-  }
+  "users": [
+    {
+      "email": "kocakgaming9876@gmail.com",
+      "otp": "070a79",
+      "verified": true,
+      "created_at": "2025-07-20T17:58:07.603600",
+      "password": "$2b$12$58cMMeXa2lMB31IzcMrk9u3WFDHoUga5KbRrFnaD0W1.mz2.PetSK",
+      "name": "string",
+      "phone": "string",
+      "university": "string",
+      "username": "hiraga",
+      "last_login": "2025-08-17T19:35:53.158579"
+    },
+    {
+      "email": "user2@gmail.com",
+      "otp": "d10107",
+      "verified": false,
+      "created_at": "2025-08-25T09:07:28.289284",
+      "password": "$2b$12$58cMMeXa2lMB31IzcMrk9u3WFDHoUga5KbRrFnaD0W1.mz2.PetSK",
+      "name": "string",
+      "phone": "string",
+      "university": "string",
+      "username": "string2",
+      "last_login": "2025-08-17T19:21:59.411091"
+    },
+    {
+      "email": "allul1712@gmail.com",
+      "otp": "7d8569",
+      "verified": true,
+      "created_at": "2025-08-20T18:05:04.502627",
+      "password": "$2b$12$oo.VLGJazWb7Buzb37T83O5KO6B9lN/LOQW3/F4X3tltKm91WavOK",
+      "name": "Thiflul",
+      "phone": "081280898820",
+      "university": "terbuka",
+      "username": "Allenth",
+      "last_login": "2025-08-25T10:21:47.914098"
+    },
+    {
+      "email": "email@gmail.com",
+      "otp": "4b9e82",
+      "verified": false,
+      "created_at": "2025-08-25T10:28:29.052868",
+      "password": "$2b$12$ekAd2E.xRYNpUQJiF2gKMuR5s0P8vyhlMfVs4gCZ9GkX5HCUW9mTG",
+      "name": "epico",
+      "phone": "1264",
+      "university": "tertutup",
+      "username": "epic"
+    },
+    {
+      "email": "email2@gmail.com",
+      "otp": "fb3005",
+      "verified": true,
+      "created_at": "2025-08-25T11:22:35.776752",
+      "password": "$2b$12$5c6Zh8NPwZD1ub3Zx.ENp.iiLxyOrf0rSG6N5/Vpwvh1h/DVaMpWu",
+      "name": "alp",
+      "phone": "12",
+      "university": "tertutup",
+      "username": "alp",
+      "last_login": "2025-08-25T12:37:36.185185"
+    }
+  ]
 }

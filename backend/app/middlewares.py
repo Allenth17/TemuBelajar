@@ -1,4 +1,5 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException
+from fastapi.requests import (Request)
 
 def require_auth(request: Request):
     token = request.headers.get("Authorization")

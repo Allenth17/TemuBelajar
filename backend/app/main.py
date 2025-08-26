@@ -1,6 +1,20 @@
-from fastapi import FastAPI, HTTPException, Header, Request, Depends
+import json
+import os
+import uuid
+from datetime import datetime, timedelta, timezone
+
+import bcrypt
+from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
+from fastapi.requests import Request
+
+from backend.app import signaling
+from backend.app.email_utils import send_otp, is_valid_campus_email
+from backend.app.matchmaking import add_to_queue, remove_from_queue
 from backend.app.middleware.error_handler import error_handler
+from backend.app.models import MatchRequest
 from backend.app.models import (
     RegisterRequest,
     RegisterResponse,
@@ -8,22 +22,8 @@ from backend.app.models import (
     LoginRequest,
     EmailRequest
 )
-from backend.app.signaling_manager.manager import signaling_manager
-from backend.app import signaling
-from backend.app.models import MatchRequest
-from backend.app.stream_manager import add_stream, get_stream
-from fastapi import WebSocket, WebSocketDisconnect
-from backend.app.email_utils import send_otp, is_valid_campus_email
-from datetime import datetime, timedelta
-from backend.app.matchmaking import add_to_queue, remove_from_queue
+from backend.app.stream_manager import add_stream, get_stream, load_streams
 from backend.app.stream_manager import remove_stream
-from fastapi.requests import Request
-from fastapi.exceptions import RequestValidationError
-
-import uuid
-import json
-import os
-import bcrypt
 
 app = FastAPI(
     title="TemuBelajar API",
@@ -60,6 +60,74 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 DB_FILE = "users.json"
 SESSION_FILE = "sessions.json"
 
+# Helpers to load/save with wrapped LIST format while keeping backward compatibility
+# users.json -> { "users": [ { "email": ..., ... }, ... ] }
+# sessions.json -> { "sessions": [ { "token": ..., "email": ..., "expired_at": ... }, ... ] }
+
+
+def _read_json(file_path: str):
+    if not os.path.exists(file_path):
+        return None
+    try:
+        with open(file_path, "r") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        return None
+
+
+def _write_json(file_path: str, data):
+    with open(file_path, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+# ----- Users (list) -----
+
+def load_users_list() -> list:
+    data = _read_json(DB_FILE)
+    if not data:
+        return []
+    # already wrapped list
+    if isinstance(data, dict) and isinstance(data.get("users"), list):
+        return data["users"]
+    # wrapped dict -> convert to list with email
+    if isinstance(data, dict) and isinstance(data.get("users"), dict):
+        return [{"email": email, **udata} for email, udata in data["users"].items()]
+    # flat dict -> convert to list
+    if isinstance(data, dict):
+        return [{"email": email, **udata} for email, udata in data.items()]
+    # flat list (unexpected but supported)
+    if isinstance(data, list):
+        return data
+    return []
+
+
+def save_users_list(users_list: list):
+    _write_json(DB_FILE, {"users": users_list})
+
+
+# ----- Sessions (list) -----
+
+def load_sessions_list() -> list:
+    data = _read_json(SESSION_FILE)
+    if not data:
+        return []
+    # already wrapped list
+    if isinstance(data, dict) and isinstance(data.get("sessions"), list):
+        return data["sessions"]
+    # wrapped dict -> convert to list with token
+    if isinstance(data, dict) and isinstance(data.get("sessions"), dict):
+        return [{"token": token, **sdata} for token, sdata in data["sessions"].items()]
+    # flat dict -> convert to list
+    if isinstance(data, dict):
+        return [{"token": token, **sdata} for token, sdata in data.items()]
+    if isinstance(data, list):
+        return data
+    return []
+
+
+def save_sessions_list(sessions_list: list):
+    _write_json(SESSION_FILE, {"sessions": sessions_list})
+
 
 # Utility: hash password
 def hash_password(password: str) -> str:
@@ -78,17 +146,15 @@ def auth_required(authorization: str = Header(None)):
 
     token = authorization.replace("Bearer ", "")
 
-    if not os.path.exists(SESSION_FILE):
+    sessions = load_sessions_list()
+    if not sessions:
         raise HTTPException(status_code=401, detail="Sessions tidak ditemukan")
 
-    with open(SESSION_FILE, "r") as sf:
-        sessions = json.load(sf)
-
-    session = sessions.get(token)
+    session = next((s for s in sessions if s.get("token") == token), None)
     if not session:
         raise HTTPException(status_code=401, detail="Token tidak valid")
 
-    if datetime.fromisoformat(session["expired_at"]) < datetime.utcnow():
+    if datetime.fromisoformat(session["expired_at"]) < datetime.now(timezone.utc):
         raise HTTPException(status_code=401, detail="Token kadaluarsa")
 
     return session["email"]
@@ -109,37 +175,32 @@ def register(data: RegisterRequest):
         raise HTTPException(status_code=400, detail="Email bukan dari kampus yang diizinkan")
 
     otp = str(uuid.uuid4())[:6]
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     if not os.path.exists(DB_FILE):
-        with open(DB_FILE, "w") as f:
-            json.dump({}, f)
+        save_users_list([])
 
-    with open(DB_FILE, "r+") as file:
-        users = json.load(file)
+    users = load_users_list()
 
-        # Cek apakah email sudah terdaftar
-        if data.email in users:
-            raise HTTPException(status_code=409, detail="Email sudah terdaftar")
+    if any(u.get("email") == data.email for u in users):
+        raise HTTPException(status_code=409, detail="Email sudah terdaftar")
 
-        # Cek apakah username sudah dipakai
-        if any(u.get("username") == data.username for u in users.values()):
-            raise HTTPException(status_code=409, detail="Username sudah dipakai")
+    if any(u.get("username") == data.username for u in users):
+        raise HTTPException(status_code=409, detail="Username sudah dipakai")
 
-        users[data.email] = {
-            "otp": otp,
-            "verified": False,
-            "created_at": now,
-            "password": hash_password(data.password),
-            "name": data.name,
-            "phone": data.phone,
-            "university": data.university,
-            "username": data.username
-        }
+    users.append({
+        "email": data.email,
+        "otp": otp,
+        "verified": False,
+        "created_at": now,
+        "password": hash_password(data.password),
+        "name": data.name,
+        "phone": data.phone,
+        "university": data.university,
+        "username": data.username
+    })
 
-        file.seek(0)
-        json.dump(users, file, indent=2)
-        file.truncate()
+    save_users_list(users)
 
     send_otp(data.email, otp)
     return {"success": True, "message": "Kode OTP dikirim ke email"}
@@ -150,52 +211,54 @@ def verify_otp(data: OtpVerificationRequest):
     if not os.path.exists(DB_FILE):
         raise HTTPException(status_code=404, detail="Database tidak ditemukan")
 
-    with open(DB_FILE, "r+") as f:
-        users = json.load(f)
+    users = load_users_list()
 
-    user_data = users.get(data.email)
-    if not user_data:
+    idx = next((i for i, u in enumerate(users) if u.get("email") == data.email), None)
+    if idx is None:
         raise HTTPException(status_code=404, detail="Email tidak ditemukan")
 
+    user_data = users[idx]
     created_at = datetime.fromisoformat(user_data.get("created_at"))
-    if not user_data["verified"] and datetime.utcnow() - created_at > timedelta(minutes=5):
-        del users[data.email]
-        with open(DB_FILE, "w") as f:
-            json.dump(users, f, indent=2)
+    if not user_data["verified"] and datetime.now(timezone.utc) - created_at > timedelta(minutes=5):
+        users.pop(idx)
+        save_users_list(users)
         raise HTTPException(status_code=410, detail="OTP kadaluarsa, silakan daftar ulang")
 
     if user_data["otp"] != data.otp:
         raise HTTPException(status_code=400, detail="OTP salah")
 
     user_data["verified"] = True
-    users[data.email] = user_data
+    users[idx] = user_data
 
-    with open(DB_FILE, "w") as f:
-        json.dump(users, f, indent=2)
+    save_users_list(users)
 
     return {"message": "OTP berhasil diverifikasi"}
 
 
 @app.post("/resend-otp")
 def resend_otp(request: EmailRequest):
-    with open(DB_FILE, "r+") as f:
-        users = json.load(f)
+    # Pastikan database ada
+    if not os.path.exists(DB_FILE):
+        raise HTTPException(status_code=404, detail="Database tidak ditemukan")
 
-    user = users.get(request.email)
-    if not user:
+    users = load_users_list()
+
+    idx = next((i for i, u in enumerate(users) if u.get("email") == request.email), None)
+    if idx is None:
         raise HTTPException(status_code=404, detail="Email tidak ditemukan")
 
-    if user["verified"]:
+    user = users[idx]
+    if user.get("verified"):
         raise HTTPException(status_code=400, detail="Email sudah diverifikasi")
 
+    # Generate dan simpan OTP baru
     otp = str(uuid.uuid4())[:6]
     user["otp"] = otp
-    user["created_at"] = datetime.utcnow().isoformat()
-    users[request.email] = user
+    user["created_at"] = datetime.now(timezone.utc).isoformat()
+    users[idx] = user
 
-    f.seek(0)
-    json.dump(users, f, indent=2)
-    f.truncate()
+    # Tulis kembali ke file
+    save_users_list(users)
 
     send_otp(request.email, otp)
     return {"message": "OTP baru telah dikirim"}
@@ -203,18 +266,18 @@ def resend_otp(request: EmailRequest):
 
 @app.post("/login")
 def login(data: LoginRequest):
-    if not os.path.exists("users.json"):
+    if not os.path.exists(DB_FILE):
         raise HTTPException(status_code=404, detail="Database tidak ditemukan")
 
-    with open("users.json", "r") as f:
-        users = json.load(f)
+    users = load_users_list()
 
     # Cari user berdasarkan email atau username
     user = None
-    for email, u in users.items():
-        if data.email_or_username == email or data.email_or_username == u.get("username"):
+    user_email = None
+    for u in users:
+        if data.email_or_username == u.get("email") or data.email_or_username == u.get("username"):
             user = u
-            user_email = email
+            user_email = u.get("email")
             break
 
     if not user:
@@ -227,30 +290,31 @@ def login(data: LoginRequest):
         raise HTTPException(status_code=401, detail="Password salah")
 
     # Update last login
-    user["last_login"] = datetime.utcnow().isoformat()
-    users[user_email] = user
+    user["last_login"] = datetime.now(timezone.utc).isoformat()
+    uidx = next((i for i, u in enumerate(users) if u.get("email") == user_email), None)
+    if uidx is not None:
+        users[uidx] = user
+    else:
+        users.append(user)
 
-    with open("users.json", "w") as f:
-        json.dump(users, f, indent=2)
+    save_users_list(users)
 
     # Buat session token
     token = str(uuid.uuid4())
-    expired_at = (datetime.utcnow() + timedelta(days=15)).isoformat()
+    expired_at = (datetime.now(timezone.utc) + timedelta(days=15)).isoformat()
 
-    if not os.path.exists("sessions.json"):
-        with open("sessions.json", "w") as sf:
-            json.dump({}, sf)
+    if not os.path.exists(SESSION_FILE):
+        save_sessions_list([])
 
-    with open("sessions.json", "r") as sf:
-        sessions = json.load(sf)
+    sessions = load_sessions_list()
 
-    sessions[token] = {
+    sessions.append({
+        "token": token,
         "email": user_email,
         "expired_at": expired_at
-    }
+    })
 
-    with open("sessions.json", "w") as sf:
-        json.dump(sessions, sf, indent=2)
+    save_sessions_list(sessions)
 
     return {"token": token, "expires_in": "15 hari"}
 
@@ -258,10 +322,9 @@ def login(data: LoginRequest):
 
 @app.get("/me")
 def get_profile(email: str = Depends(auth_required)):
-    with open(DB_FILE, "r") as f:
-        users = json.load(f)
+    users = load_users_list()
 
-    user = users.get(email)
+    user = next((u for u in users if u.get("email") == email), None)
     if not user:
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
 
@@ -282,35 +345,33 @@ def logout(request: Request):
         raise HTTPException(status_code=400, detail="Missing or invalid auth token")
 
     token = token.replace("Bearer ", "")
-    with open(SESSION_FILE, "r+") as f:
-        sessions = json.load(f)
-        if token in sessions:
-            del sessions[token]
-            f.seek(0)
-            f.truncate()
-            json.dump(sessions, f)
-            return {"message": "Logged out successfully"}
-        else:
-            raise HTTPException(status_code=401, detail="Invalid session token")
+    if not os.path.exists(SESSION_FILE):
+        raise HTTPException(status_code=401, detail="Invalid session token")
+
+    sessions = load_sessions_list()
+    idx = next((i for i, s in enumerate(sessions) if s.get("token") == token), None)
+    if idx is not None:
+        sessions.pop(idx)
+        save_sessions_list(sessions)
+        return {"message": "Logged out successfully"}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid session token")
 
 
 @app.delete("/expired-sessions")
 def cleanup_expired_sessions():
-    now = datetime.utcnow()
-    with open(SESSION_FILE, "r+") as f:
-        sessions = json.load(f)
-        new_sessions = {
-            token: data for token, data in sessions.items()
-            if datetime.fromisoformat(data["expired_at"]) > now
-        }
-        f.seek(0)
-        f.truncate()
-        json.dump(new_sessions, f, indent=2)
+    now = datetime.now(timezone.utc)
+    if not os.path.exists(SESSION_FILE):
+        save_sessions_list([])
+        return {"message": "No sessions to clean"}
+
+    sessions = load_sessions_list()
+    new_sessions = [s for s in sessions if datetime.fromisoformat(s["expired_at"]) > now]
+    save_sessions_list(new_sessions)
     return {"message": "Expired sessions dibersihkan"}
 
 # WebSocket endpoint for matchmaking
 app.include_router(signaling.router)
-
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
@@ -319,7 +380,6 @@ async def websocket_endpoint(ws: WebSocket):
     try:
         while True:
             data = await ws.receive_text()
-            # proses data signaling seperti biasa
     except WebSocketDisconnect:
         await remove_from_queue(ws)
 

@@ -1,38 +1,49 @@
 {
-  "7319ffcf-66a3-49bc-9e85-737be8ce879b": {
-    "email": "user2@gmail.com",
-    "expired_at": "2025-09-01T19:19:59.104750"
-  },
-  "8d3df6a8-7b38-4d55-a0e3-b0e0f0410442": {
-    "email": "user2@gmail.com",
-    "expired_at": "2025-09-01T19:21:56.429307"
-  },
-  "f1cf88f3-401f-4d42-bcef-7af67de782d3": {
-    "email": "user2@gmail.com",
-    "expired_at": "2025-09-01T19:21:59.412789"
-  },
-  "b5e64506-0c2b-4751-96c2-fe5fb71e95e2": {
-    "email": "kocakgaming9876@gmail.com",
-    "expired_at": "2025-09-01T19:23:04.306331"
-  },
-  "29f703fb-e363-4a6f-b5f7-497b42313d7f": {
-    "email": "kocakgaming9876@gmail.com",
-    "expired_at": "2025-09-01T19:35:53.163748"
-  },
-  "e88fb07f-68dc-4e34-a8c3-1ce9274b526c": {
-    "email": "allul1712@gmail.com",
-    "expired_at": "2025-09-04T19:21:51.372389"
-  },
-  "9dcc0973-fb48-4837-a9b1-dfc921074290": {
-    "email": "allul1712@gmail.com",
-    "expired_at": "2025-09-05T05:23:22.423757"
-  },
-  "09097be5-a6f6-4853-97f5-409c0202b5f2": {
-    "email": "allul1712@gmail.com",
-    "expired_at": "2025-09-05T11:46:31.417501"
-  },
-  "076a8dd3-9313-40bb-93df-90ace3ba4e0f": {
-    "email": "allul1712@gmail.com",
-    "expired_at": "2025-09-06T11:50:59.663808"
-  }
+  "sessions": [
+    {
+      "token": "b5e64506-0c2b-4751-96c2-fe5fb71e95e2",
+      "email": "kocakgaming9876@gmail.com",
+      "expired_at": "2025-09-01T19:23:04.306331"
+    },
+    {
+      "token": "29f703fb-e363-4a6f-b5f7-497b42313d7f",
+      "email": "kocakgaming9876@gmail.com",
+      "expired_at": "2025-09-01T19:35:53.163748"
+    },
+    {
+      "token": "e88fb07f-68dc-4e34-a8c3-1ce9274b526c",
+      "email": "allul1712@gmail.com",
+      "expired_at": "2025-09-04T19:21:51.372389"
+    },
+    {
+      "token": "9dcc0973-fb48-4837-a9b1-dfc921074290",
+      "email": "allul1712@gmail.com",
+      "expired_at": "2025-09-05T05:23:22.423757"
+    },
+    {
+      "token": "09097be5-a6f6-4853-97f5-409c0202b5f2",
+      "email": "allul1712@gmail.com",
+      "expired_at": "2025-09-05T11:46:31.417501"
+    },
+    {
+      "token": "076a8dd3-9313-40bb-93df-90ace3ba4e0f",
+      "email": "allul1712@gmail.com",
+      "expired_at": "2025-09-06T11:50:59.663808"
+    },
+    {
+      "token": "ce0ad8f3-7234-496b-9b70-122c9c02c37f",
+      "email": "allul1712@gmail.com",
+      "expired_at": "2025-09-09T10:21:47.920748"
+    },
+    {
+      "token": "e80ba650-e15e-4b4a-bb4f-a2c5fd2efe1f",
+      "email": "email2@gmail.com",
+      "expired_at": "2025-09-09T11:27:36.367481"
+    },
+    {
+      "token": "6c1a72f3-8e23-43b0-a038-e31b3ca65b7e",
+      "email": "email2@gmail.com",
+      "expired_at": "2025-09-09T12:37:36.201187"
+    }
+  ]
 }

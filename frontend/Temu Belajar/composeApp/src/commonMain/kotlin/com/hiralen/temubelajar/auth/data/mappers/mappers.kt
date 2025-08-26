@@ -10,7 +10,6 @@ import com.hiralen.temubelajar.auth.domain.Message
 fun AccountDto.toAccount(): Account {
     return Account(
         email = email,
-        username = username,
         name = name,
         phone = phone,
         university = university
@@ -20,7 +19,6 @@ fun AccountDto.toAccount(): Account {
 fun Account.toAccountDto() : AccountDto {
     return AccountDto(
         email = email,
-        username = username,
         name = name,
         phone = phone,
         university = university

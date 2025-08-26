@@ -30,7 +30,7 @@ fun OtpTextField(
                 onOtpTextChange(updatedOtp)
             }
         },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
         modifier = modifier,
         decorationBox = {
             Row(horizontalArrangement = Arrangement.Center) {

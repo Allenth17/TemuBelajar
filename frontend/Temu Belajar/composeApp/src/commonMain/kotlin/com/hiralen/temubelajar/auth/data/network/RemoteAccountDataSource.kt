@@ -5,6 +5,7 @@ import com.hiralen.temubelajar.auth.data.dto.AccountLoginDto
 import com.hiralen.temubelajar.auth.data.dto.AccountRegisterDto
 import com.hiralen.temubelajar.auth.data.dto.LoginResponseDto
 import com.hiralen.temubelajar.auth.data.dto.MessageDto
+import com.hiralen.temubelajar.auth.data.dto.ResendOtpDto
 import com.hiralen.temubelajar.auth.data.dto.VerifyOtpDto
 import com.hiralen.temubelajar.auth.data.mappers.toAccount
 import com.hiralen.temubelajar.auth.data.mappers.toLoginResponse
@@ -68,6 +69,21 @@ class RemoteAccountDataSource(
             }
         }.map { it.toMessage() }
     }
+
+    override suspend fun resendOtp(
+        email: String
+    ): Result<Message, DataError.Remote> {
+        val resendOtpDto = ResendOtpDto(
+            email = email
+        )
+        return safeCall<MessageDto> {
+            httpClient.post(urlString = "${BASE_URL}/resend-otp") {
+                contentType(type = ContentType.Application.Json)
+                setBody(body = resendOtpDto)
+            }
+        }.map { it.toMessage() }
+    }
+
     override suspend fun login(
         accountLogin: AccountLogin
     ) : Result<LoginResponse, DataError.Remote> {
@@ -85,23 +101,23 @@ class RemoteAccountDataSource(
     }
 
     override suspend fun me(
-        token: String
+        token: String?
     ) : Result<Account, DataError.Remote> {
         return safeCall<AccountDto> {
             httpClient.get(
                 urlString = "${BASE_URL}/me"
-            ) { bearerAuth(token) }
+            ) { bearerAuth(token?: "") }
         }.map { it.toAccount() }
     }
 
     override suspend fun logout(
-        token: String
+        token: String?
     ) : Result<Message, DataError.Remote> {
         return safeCall<MessageDto> {
             httpClient.post(
                 urlString = "${BASE_URL}/logout"
             ) {
-                bearerAuth(token)
+                bearerAuth(token?: "")
             }
         }.map { it.toMessage() }
     }

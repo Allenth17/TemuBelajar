@@ -20,16 +20,20 @@ class DefaultAccountRepo(
         otp: String
     ) = remoteDataSource.verifyOtp(email, otp)
 
+    override suspend fun resendOtp(
+        email: String
+    ) = remoteDataSource.resendOtp(email)
+
     override suspend fun login(
         accountLogin: AccountLogin
     ) = remoteDataSource.login(accountLogin)
 
     override suspend fun me(
-        token: String
+        token: String?
     ) = remoteDataSource.me(token)
 
     override suspend fun logout(
-        token: String
+        token: String?
     ) = remoteDataSource.logout(token)
 
     override suspend fun getToken(): Token? {

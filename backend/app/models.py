@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, validator
 
 class RegisterRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     username: str
     name: str
@@ -30,7 +30,7 @@ class RegisterResponse(BaseModel):
     message: str
 
 class VerifyRequest(BaseModel):
-    email: EmailStr
+    email: str
     otp: str
 
 class VerifyResponse(BaseModel):
@@ -46,7 +46,7 @@ class LoginRequest(BaseModel):
 
     
 class EmailRequest(BaseModel):
-    email: EmailStr
+    email: str
 
 class MatchRequest(BaseModel):
     user_id: str

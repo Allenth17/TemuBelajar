@@ -10,3 +10,14 @@ sealed class OTPState <out O> {
         val message: String
     ) : OTPState<Nothing>()
 }
+
+sealed class ROTPState <out RO> {
+    data object Loading : ROTPState<Nothing>()
+    data object Idle : ROTPState<Nothing>()
+    data class Success<out RO>(
+        val data: RO
+    ) : ROTPState<RO>()
+    data class Error(
+        val message: String
+    ) : ROTPState<Nothing>()
+}

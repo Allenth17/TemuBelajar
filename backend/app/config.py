@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pydantic.v1 import BaseSettings
+
 
 class Settings(BaseSettings):
     smtp_email: str
