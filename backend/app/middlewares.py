@@ -1,5 +1,7 @@
 from fastapi import Depends, HTTPException
 from fastapi.requests import (Request)
+from pydantic import json
+
 
 def require_auth(request: Request):
     token = request.headers.get("Authorization")

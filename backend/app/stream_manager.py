@@ -2,7 +2,8 @@ import json
 from pathlib import Path
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
 
 STREAM_FILE = Path(__file__).resolve().parent / "active_streams.json"
 
@@ -22,16 +23,19 @@ def add_stream(user_id: str, stream_url: str):
     data = load_streams()
     data[user_id] = {
         "stream_url": stream_url,
-        "last_seen": datetime.utcnow().isoformat()
+        "last_seen": datetime.now(timezone.utc).isoformat()
     }
     save_streams(data)
 
 
-def remove_stream(user_id: str):
+def remove_stream(user_id: str) -> bool:
     data = load_streams()
+    removed = False
     if user_id in data:
         del data[user_id]
+        removed = True
     save_streams(data)
+    return removed
 
 def get_stream(user_id: str):
     data = load_streams()
@@ -44,7 +48,7 @@ def update_stream_status(user_id: str, status: str) -> bool:
         return False
         
     data[user_id]["status"] = status
-    data[user_id]["updated_at"] = datetime.utcnow().isoformat()
+    data[user_id]["updated_at"] = datetime.now(timezone.utc).isoformat()
     save_streams(data)
     return True
 

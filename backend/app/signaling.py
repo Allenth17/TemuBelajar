@@ -9,25 +9,37 @@ router = APIRouter()
 # Simpan koneksi aktif
 active_connections: Dict[str, WebSocket] = {}
 
-# Path ke sessions.json
-SESSIONS_FILE = Path("backend/data/sessions.json")
+# Path ke sessions.json (gunakan file utama yang dipakai oleh main.py)
+SESSIONS_FILE = Path("sessions.json")
 
-def load_sessions():
-    if SESSIONS_FILE.exists():
-        return json.loads(SESSIONS_FILE.read_text())
-    return {}
+
+def load_sessions_list():
+    if not SESSIONS_FILE.exists():
+        return []
+    try:
+        data = json.loads(SESSIONS_FILE.read_text())
+        if isinstance(data, dict) and isinstance(data.get("sessions"), list):
+            return data["sessions"]
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            # fallback: convert dict of token->session to list
+            return [{"token": k, **v} for k, v in data.items()]
+    except Exception:
+        return []
+    return []
 
 @router.websocket("/ws/signaling")
 async def websocket_endpoint(websocket: WebSocket):
     # Ambil token dari query param
     token = websocket.query_params.get("token")
 
-    # Validasi token
-    sessions = load_sessions()
-    user_id = None
-    for uid, sess in sessions.items():
+    # Validasi token pada sessions.json (format list)
+    sessions = load_sessions_list()
+    user_id = None  # gunakan email sebagai user_id
+    for sess in sessions:
         if sess.get("token") == token:
-            user_id = uid
+            user_id = sess.get("email")
             break
 
     if not user_id:

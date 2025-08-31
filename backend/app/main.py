@@ -22,13 +22,13 @@ from backend.app.models import (
     LoginRequest,
     EmailRequest
 )
-from backend.app.stream_manager import add_stream, get_stream, load_streams
+from backend.app.stream_manager import add_stream, get_stream
 from backend.app.stream_manager import remove_stream
 
 app = FastAPI(
-    title="TemuBelajar API",
-    description="API for TemuBelajar video chat application",
-    version="1.0.0"
+    title = "TemuBelajar API",
+    description = "API for TemuBelajar video chat application",
+    version = "1.0.0"
 )
 
 def custom_openapi():
@@ -36,10 +36,10 @@ def custom_openapi():
         return app.openapi_schema
         
     openapi_schema = get_openapi(
-        title="TemuBelajar API",
-        version="1.0.0",
-        description="API for TemuBelajar video chat application",
-        routes=app.routes,
+        title = "TemuBelajar API",
+        version = "1.0.0",
+        description = "API for TemuBelajar video chat application",
+        routes = app.routes,
     )
     
     app.openapi_schema = openapi_schema
@@ -102,7 +102,7 @@ def load_users_list() -> list:
 
 
 def save_users_list(users_list: list):
-    _write_json(DB_FILE, {"users": users_list})
+    _write_json(DB_FILE, { "users": users_list })
 
 
 # ----- Sessions (list) -----
@@ -160,19 +160,28 @@ def auth_required(authorization: str = Header(None)):
     return session["email"]
 
 # Matchmaking endpoint
+from backend.app.stream_manager import load_streams
+
 def find_match(user_id: str):
-    # Dummy logic, replace with your own
+    # Find any other user that currently has a stream
+    try:
+        streams = load_streams()
+        for uid, info in streams.items():
+            if uid != user_id:
+                return uid
+    except Exception:
+        pass
     return None
 
 @app.get("/")
 def hello():
-    return {"message": "backend is running"}
+    return { "message": "backend is running" }
 
 
 @app.post("/register", response_model=RegisterResponse)
 def register(data: RegisterRequest):
     if not is_valid_campus_email(data.email):
-        raise HTTPException(status_code=400, detail="Email bukan dari kampus yang diizinkan")
+        raise HTTPException(status_code = 400, detail = "Email bukan dari kampus yang diizinkan")
 
     otp = str(uuid.uuid4())[:6]
     now = datetime.now(timezone.utc).isoformat()
@@ -183,10 +192,10 @@ def register(data: RegisterRequest):
     users = load_users_list()
 
     if any(u.get("email") == data.email for u in users):
-        raise HTTPException(status_code=409, detail="Email sudah terdaftar")
+        raise HTTPException(status_code = 409, detail = "Email sudah terdaftar")
 
     if any(u.get("username") == data.username for u in users):
-        raise HTTPException(status_code=409, detail="Username sudah dipakai")
+        raise HTTPException(status_code = 409, detail = "Username sudah dipakai")
 
     users.append({
         "email": data.email,
@@ -203,36 +212,36 @@ def register(data: RegisterRequest):
     save_users_list(users)
 
     send_otp(data.email, otp)
-    return {"success": True, "message": "Kode OTP dikirim ke email"}
+    return { "success": True, "message": "Kode OTP dikirim ke email" }
 
 
 @app.post("/verify-otp")
 def verify_otp(data: OtpVerificationRequest):
     if not os.path.exists(DB_FILE):
-        raise HTTPException(status_code=404, detail="Database tidak ditemukan")
+        raise HTTPException(status_code = 404, detail = "Database tidak ditemukan")
 
     users = load_users_list()
 
     idx = next((i for i, u in enumerate(users) if u.get("email") == data.email), None)
     if idx is None:
-        raise HTTPException(status_code=404, detail="Email tidak ditemukan")
+        raise HTTPException(status_code = 404, detail = "Email tidak ditemukan")
 
     user_data = users[idx]
     created_at = datetime.fromisoformat(user_data.get("created_at"))
     if not user_data["verified"] and datetime.now(timezone.utc) - created_at > timedelta(minutes=5):
         users.pop(idx)
         save_users_list(users)
-        raise HTTPException(status_code=410, detail="OTP kadaluarsa, silakan daftar ulang")
+        raise HTTPException(status_code = 410, detail = "OTP kadaluarsa, silakan daftar ulang")
 
     if user_data["otp"] != data.otp:
-        raise HTTPException(status_code=400, detail="OTP salah")
+        raise HTTPException(status_code = 400, detail = "OTP salah")
 
     user_data["verified"] = True
     users[idx] = user_data
 
     save_users_list(users)
 
-    return {"message": "OTP berhasil diverifikasi"}
+    return { "message": "OTP berhasil diverifikasi" }
 
 
 @app.post("/resend-otp")
@@ -245,11 +254,11 @@ def resend_otp(request: EmailRequest):
 
     idx = next((i for i, u in enumerate(users) if u.get("email") == request.email), None)
     if idx is None:
-        raise HTTPException(status_code=404, detail="Email tidak ditemukan")
+        raise HTTPException(status_code = 404, detail = "Email tidak ditemukan")
 
     user = users[idx]
     if user.get("verified"):
-        raise HTTPException(status_code=400, detail="Email sudah diverifikasi")
+        raise HTTPException(status_code = 400, detail = "Email sudah diverifikasi")
 
     # Generate dan simpan OTP baru
     otp = str(uuid.uuid4())[:6]
@@ -261,13 +270,13 @@ def resend_otp(request: EmailRequest):
     save_users_list(users)
 
     send_otp(request.email, otp)
-    return {"message": "OTP baru telah dikirim"}
+    return { "message": "OTP baru telah dikirim" }
 
 
 @app.post("/login")
 def login(data: LoginRequest):
     if not os.path.exists(DB_FILE):
-        raise HTTPException(status_code=404, detail="Database tidak ditemukan")
+        raise HTTPException(status_code = 404, detail = "Database tidak ditemukan")
 
     users = load_users_list()
 
@@ -281,13 +290,13 @@ def login(data: LoginRequest):
             break
 
     if not user:
-        raise HTTPException(status_code=404, detail="Email/Username tidak ditemukan")
+        raise HTTPException(status_code = 404, detail = "Email/Username tidak ditemukan")
 
     if not user["verified"]:
-        raise HTTPException(status_code=403, detail="Email belum diverifikasi")
+        raise HTTPException(status_code = 403, detail = "Email belum diverifikasi")
 
     if not check_password(data.password, user["password"]):
-        raise HTTPException(status_code=401, detail="Password salah")
+        raise HTTPException(status_code = 401, detail = "Password salah")
 
     # Update last login
     user["last_login"] = datetime.now(timezone.utc).isoformat()
@@ -326,7 +335,7 @@ def get_profile(email: str = Depends(auth_required)):
 
     user = next((u for u in users if u.get("email") == email), None)
     if not user:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        raise HTTPException(status_code = 404, detail = "User tidak ditemukan")
 
     return {
         "email": email,
@@ -342,11 +351,11 @@ def get_profile(email: str = Depends(auth_required)):
 def logout(request: Request):
     token = request.headers.get("Authorization")
     if not token or not token.startswith("Bearer "):
-        raise HTTPException(status_code=400, detail="Missing or invalid auth token")
+        raise HTTPException(status_code = 400, detail = "Missing or invalid auth token")
 
     token = token.replace("Bearer ", "")
     if not os.path.exists(SESSION_FILE):
-        raise HTTPException(status_code=401, detail="Invalid session token")
+        raise HTTPException(status_code = 401, detail = "Invalid session token")
 
     sessions = load_sessions_list()
     idx = next((i for i, s in enumerate(sessions) if s.get("token") == token), None)
@@ -355,7 +364,7 @@ def logout(request: Request):
         save_sessions_list(sessions)
         return {"message": "Logged out successfully"}
     else:
-        raise HTTPException(status_code=401, detail="Invalid session token")
+        raise HTTPException(status_code = 401, detail = "Invalid session token")
 
 
 @app.delete("/expired-sessions")
@@ -388,7 +397,7 @@ async def websocket_endpoint(ws: WebSocket):
 def fetch_stream(user_id: str):
     stream = get_stream(user_id)
     if not stream:
-        raise HTTPException(status_code=404, detail="No stream found.")
+        raise HTTPException(status_code = 404, detail = "No stream found.")
     return stream
 
 # Endpoint to match user and return stream URL
@@ -397,14 +406,17 @@ def match_user(request: MatchRequest):
     user_id = request.user_id
     stream_url = request.stream_url
 
-    # Ganti ini pakai logic match kamu sendiri
+    # Simpan stream URL user lebih dulu
+    add_stream(user_id, stream_url)
+
+    # Coba cari pasangan yang sudah aktif
     target_user_id = find_match(user_id)
 
     if not target_user_id:
-        raise HTTPException(status_code=404, detail="No match found.")
-
-    # Simpan stream URL user
-    add_stream(user_id, stream_url)
+        return {
+            "matched_with": None,
+            "message": "Waiting for another user to join..."
+        }
 
     # Cek apakah target udah punya stream
     target_stream = get_stream(target_user_id)
@@ -419,13 +431,13 @@ def match_user(request: MatchRequest):
         "message": "Waiting for target stream..."
     }
 
-# Endpoint to remove user from streaming
+# Endpoint to remove a user from streaming
 @app.post("/disconnect/{user_id}")
 def disconnect_user(user_id: str):
     removed = remove_stream(user_id)
     if not removed:
-        raise HTTPException(status_code=404, detail="User not streaming.")
-    return {"message": f"User {user_id} disconnected."}
+        raise HTTPException(status_code = 404, detail = "User not streaming.")
+    return { "message": f"User {user_id} disconnected." }
 
 # Endpoint to list all active streams
 @app.get("/streams")
@@ -433,4 +445,4 @@ def list_streams():
     streams = load_streams()  # dari stream_manager
     return streams
 
-# The signaling WebSocket endpoint is now handled by the signaling router
+# The signaling router now handles the signaling WebSocket endpoint
