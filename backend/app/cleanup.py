@@ -29,6 +29,7 @@ def save_json(path, data):
             json.dump(data, f, indent=2)
 
 
+
 def cleanup_otp_and_users():
     otps = load_json(OTP_PATH)
     users = load_json(USER_PATH)

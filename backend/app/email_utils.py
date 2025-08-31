@@ -13,6 +13,7 @@ ALLOWED_DOMAINS = [
     "ut.ac.id"
 ]
 
+
 def is_valid_campus_email(email: str) -> bool:
     return any(email.endswith("@" + domain) for domain in ALLOWED_DOMAINS)
 

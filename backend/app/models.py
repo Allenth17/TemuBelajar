@@ -8,6 +8,7 @@ class RegisterRequest(BaseModel):
     phone: str
     university: str
 
+
     @validator("password")
     def validate_password(cls, v):
         if len(v) < 8:

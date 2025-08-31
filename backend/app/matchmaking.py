@@ -18,3 +18,4 @@ async def try_match_users():
         user2 = waiting_users.pop(0)
         await user1.send_json({"type": "match_found", "role": "caller"})
         await user2.send_json({"type": "match_found", "role": "receiver"})
+

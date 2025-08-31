@@ -25,6 +25,7 @@ from backend.app.models import (
 from backend.app.stream_manager import add_stream, get_stream
 from backend.app.stream_manager import remove_stream
 
+
 app = FastAPI(
     title = "TemuBelajar API",
     description = "API for TemuBelajar video chat application",

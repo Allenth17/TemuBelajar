@@ -6,3 +6,4 @@ def save_otp(email: str, otp: str):
 
 def verify_otp(email: str, otp: str) -> bool:
     return otp_storage.get(email) == otp
+

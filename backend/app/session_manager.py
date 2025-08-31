@@ -32,3 +32,4 @@ class SessionManager:
             return []
         except FileNotFoundError:
             return []
+

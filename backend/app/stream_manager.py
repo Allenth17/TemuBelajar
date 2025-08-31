@@ -60,6 +60,7 @@ def get_active_streams() -> dict:
         if info.get("status") == "active"
     }
 
+
 def cleanup_streams(timeout_minutes: int = 5):
     if not os.path.exists(STREAM_FILE):
         return
