@@ -23,7 +23,7 @@ def add_stream(user_id: str, stream_url: str):
     data = load_streams()
     data[user_id] = {
         "stream_url": stream_url,
-        "last_seen": datetime.now(timezone.utc).isoformat()
+        "last_seen": datetime.utcnow().isoformat()
     }
     save_streams(data)
 
@@ -48,7 +48,7 @@ def update_stream_status(user_id: str, status: str) -> bool:
         return False
         
     data[user_id]["status"] = status
-    data[user_id]["updated_at"] = datetime.now(timezone.utc).isoformat()
+    data[user_id]["updated_at"] = datetime.utcnow().isoformat()
     save_streams(data)
     return True
 
@@ -68,6 +68,7 @@ def cleanup_streams(timeout_minutes: int = 5):
     with open(STREAM_FILE, "r") as f:
         data = json.load(f)
 
+    # Use naive UTC now for uniform comparison
     now = datetime.utcnow()
     cleaned_data = {}
 
@@ -75,7 +76,14 @@ def cleanup_streams(timeout_minutes: int = 5):
         last_seen_str = stream_info.get("last_seen")
         if not last_seen_str:
             continue
-        last_seen = datetime.fromisoformat(last_seen_str)
+        try:
+            last_seen = datetime.fromisoformat(last_seen_str)
+        except Exception:
+            # Skip malformed timestamps
+            continue
+        # Normalize to naive UTC for uniform comparison
+        if last_seen.tzinfo is not None:
+            last_seen = last_seen.astimezone(timezone.utc).replace(tzinfo=None)
         if now - last_seen < timedelta(minutes=timeout_minutes):
             cleaned_data[user_id] = stream_info
 

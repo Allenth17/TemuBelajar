@@ -130,8 +130,8 @@ fun LoginScreen(
                     }
                 ) {
                     Icon(
-                        imageVector = if (passwordVisible) FeatherIcons.Eye
-                        else FeatherIcons.EyeOff,
+                        imageVector = if (passwordVisible) FeatherIcons.EyeOff
+                        else FeatherIcons.Eye,
                         contentDescription = null
                     )
                 }

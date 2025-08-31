@@ -20,8 +20,10 @@ def is_valid_campus_email(email: str) -> bool:
 def send_otp(to_email: str, otp: str):
     EMAIL = os.getenv("SMTP_EMAIL")
     PASSWORD = os.getenv("SMTP_PASS")
-    
 
+    if not EMAIL or not PASSWORD:
+        # Fail fast with a clear message rather than crashing later
+        raise RuntimeError("SMTP_EMAIL/SMTP_PASS not configured. Set them in .env or environment variables.")
 
     msg = EmailMessage()
     msg.set_content(f"Kode OTP kamu: {otp}")
@@ -29,7 +31,11 @@ def send_otp(to_email: str, otp: str):
     msg["From"] = EMAIL
     msg["To"] = to_email
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-        smtp.login(EMAIL, PASSWORD)
-        smtp.send_message(msg)
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+            smtp.login(EMAIL, PASSWORD)
+            smtp.send_message(msg)
+    except Exception as e:
+        # Bubble up an informative error
+        raise RuntimeError(f"Gagal mengirim email OTP: {e}")
         
