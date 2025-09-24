@@ -100,12 +100,12 @@ Test health:
 
 ## To-Do
 - Security and data
-  - [✅] Migrate from JSON files to a proper database (e.g., PostgreSQL/SQLite via SQLAlchemy)
+  - [x] Migrate from JSON files to a proper database (e.g., PostgreSQL/SQLite via SQLAlchemy)
   - [ ] Hash secret values and move all secrets to environment variables and/or a vault
   - [ ] Add password reset flow and email rate limiting
   - [ ] Implement account lockout/anti-bruteforce protections
 - Email delivery
-  - [ ] Add error handling and retries for SMTP failures
+  - [ ] Add error handling and retries for SMTP failuresv
   - [ ] Support async mailers or a queue (e.g., Celery/RQ) to send OTPs
 - API and validation
   - [ ] Expand OpenAPI docs and add examples/schemas for all endpoints
@@ -137,4 +137,3 @@ Test health:
 
 
 ## License
-Specify your project license here.
