@@ -100,7 +100,7 @@ Test health:
 
 ## To-Do
 - Security and data
-  - [x] Migrate from JSON files to a proper database (e.g., PostgreSQL/SQLite via SQLAlchemy)
+  - [x] Migrate from JSON files to a proper database (PostgreSQL)
   - [ ] Hash secret values and move all secrets to environment variables and/or a vault
   - [ ] Add password reset flow and email rate limiting
   - [ ] Implement account lockout/anti-bruteforce protections
