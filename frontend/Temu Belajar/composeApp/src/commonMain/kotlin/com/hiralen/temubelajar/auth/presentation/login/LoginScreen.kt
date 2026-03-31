@@ -1,193 +1,203 @@
 package com.hiralen.temubelajar.auth.presentation.login
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.hiralen.temubelajar.auth.presentation.AuthViewModel
-import com.hiralen.temubelajar.auth.presentation.components.CustomAuthTextField
-import com.hiralen.temubelajar.auth.presentation.components.HeaderText
-import com.hiralen.temubelajar.core.presentation.defaultPadding
-import com.hiralen.temubelajar.core.presentation.itemSpacing
-import compose.icons.FeatherIcons
-import compose.icons.feathericons.Eye
-import compose.icons.feathericons.EyeOff
-import compose.icons.feathericons.Lock
-import compose.icons.feathericons.User
-import kotlin.plus
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.*
+import com.hiralen.temubelajar.auth.component.LoginComponent
+import com.hiralen.temubelajar.core.data.TokenStorage
+import com.hiralen.temubelajar.core.ui.*
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 
 @Composable
-fun LoginScreen(
-    viewModel: AuthViewModel,
-    onLoginSuccess: () -> Unit,
-    onRegisterClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val emailState = rememberSaveable { mutableStateOf("") }
-    val passwordState = rememberSaveable { mutableStateOf("") }
-    val loginState by viewModel.loginState.collectAsStateWithLifecycle()
-    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+fun LoginScreen(component: LoginComponent) {
+    val state by component.state.collectAsState()
+    var passwordVisible by remember { mutableStateOf(false) }
+    val isDark = isSystemInDarkTheme()
 
-    val focusManager = LocalFocusManager.current
-    LaunchedEffect(
-        loginState
-    ) {
-        when(val state = loginState) {
-            is LoginState.Success -> {
-                onLoginSuccess()
-                focusManager.clearFocus()
-                viewModel.resetLoginState()
-            }
-            is LoginState.Error -> {
-                viewModel.resetLoginState()
-            }
-            else ->  Unit
-        }
-    }
-    LaunchedEffect(
-        emailState.value,
-        passwordState.value
-    ) {
-        viewModel.updateEmail(emailState.value)
-        viewModel.updatePassword(passwordState.value)
-    }
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(defaultPadding),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(if (isDark) TBColors.BackgroundDark else Color(0xFFFCF9F7))
     ) {
-        HeaderText(
-            text = "Login",
+        // Orange Wave Background (Bottom)
+        Box(
             modifier = Modifier
-                .padding(vertical = defaultPadding)
-                .align(alignment = Alignment.Start)
-        )
-        CustomAuthTextField(
-            value = emailState.value,
-            onValueChange = { emailState.value = it },
-            labelText = "Username or Email",
-            modifier = modifier.fillMaxWidth(),
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Next,
-            leadingIcon = {
-                Icon(
-                    imageVector = FeatherIcons.User,
-                    contentDescription = null
-                )
-            }
-        )
-        Spacer(modifier = Modifier.height(itemSpacing))
-        CustomAuthTextField(
-            value = passwordState.value,
-            onValueChange = { passwordState.value = it },
-            labelText = "Password",
-            modifier = modifier.fillMaxWidth(),
-            keyboardType = KeyboardType.Password,
-            visualTransformation = if (passwordVisible) VisualTransformation.None
-            else PasswordVisualTransformation(),
-            imeAction = ImeAction.Done,
-            leadingIcon = {
-                Icon(
-                    imageVector = FeatherIcons.Lock,
-                    contentDescription = null
-                )
-            },
-            trailingIcon = {
-                IconButton(
-                    onClick = {
-                        passwordVisible = !passwordVisible
-                    }
-                ) {
-                    Icon(
-                        imageVector = if (passwordVisible) FeatherIcons.EyeOff
-                        else FeatherIcons.Eye,
-                        contentDescription = null
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(180.dp)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            TBColors.Primary.copy(alpha = 0.1f),
+                            TBColors.Primary.copy(alpha = 0.4f)
+                        )
                     )
-                }
-            }
+                )
         )
-        Spacer(modifier = Modifier.height(defaultPadding + 8.dp))
-        Button(
-            onClick = {
-                focusManager.clearFocus()
-                viewModel.login()
-            },
-            modifier = modifier.fillMaxWidth(),
-            enabled = loginState !is LoginState.Loading,
-            colors = ButtonDefaults.buttonColors()
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (loginState is LoginState.Loading) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-            } else {
-                Text("Sign In")
-            }
-        }
-        Spacer(modifier = Modifier.height(itemSpacing))
-        val regString = "Register here"
-        val registerString = buildAnnotatedString(
-            builder = {
-                withStyle(
-                    style = SpanStyle()
-                ) {
-                    append(text = "Don't have an account?")
-                }
-                append(text = " ")
-                withStyle(
-                    style = SpanStyle(
-                        color = MaterialTheme.colorScheme.primary
+            Spacer(Modifier.height(40.dp))
+
+            val storage = remember { TokenStorage() }
+            val hasLoggedIn = remember { storage.hasLoggedInBefore() }
+
+            // Lottie Animation: cat_peek.json as Header Icon
+            TBLottie(
+                resPath = "files/cat_peek.json",
+                modifier = Modifier
+                    .size(200.dp) // Enlarged as requested
+                    .clip(RoundedCornerShape(40.dp))
+                    .background(if (isDark) TBColors.SurfaceDark else Color.White, RoundedCornerShape(40.dp))
+                    .border(1.dp, if (isDark) TBColors.CardBorderDark else Color(0xFFF3F4F6), RoundedCornerShape(40.dp))
+                    .padding(24.dp),
+                iterations = Int.MAX_VALUE
+            )
+
+            Spacer(Modifier.height(32.dp))
+
+            Text(
+                text = if (hasLoggedIn) "Welcome Back!" else "Welcome to TemuBelajar",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDark) TBColors.TextPrimaryDark else TBColors.TextPrimary,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                text = "Sign in to start a video call with your friends,\nfamily, and peers.",
+                fontSize = 15.sp,
+                color = if (isDark) TBColors.TextSecondaryDark else TBColors.TextSecondary,
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+
+            Spacer(Modifier.height(48.dp))
+
+            Column(
+                modifier = Modifier.widthIn(max = 400.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                TBTextField(
+                    value = state.email,
+                    onValueChange = component::onEmailChange,
+                    label = "Email",
+                    placeholder = "you@email.com",
+                    leadingIcon = TablerIcons.Mail,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                )
+
+                Column {
+                    TBTextField(
+                        value = state.password,
+                        onValueChange = component::onPasswordChange,
+                        label = "Password",
+                        placeholder = "••••••••",
+                        leadingIcon = TablerIcons.Lock,
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    if (passwordVisible) TablerIcons.Eye else TablerIcons.EyeOff,
+                                    contentDescription = null,
+                                    tint = TBColors.Primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        },
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                     )
-                ) {
-                    pushStringAnnotation(
-                        tag = regString,
-                        annotation = regString
+                    
+                    Text(
+                        text = "Forgot Password?",
+                        color = if (isDark) TBColors.TextSecondaryDark else TBColors.TextSecondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(top = 8.dp)
+                            .clickable { /* TODO */ }
                     )
-                    append(text = regString)
+                }
+
+                if (state.error != null) {
+                    TBErrorBanner(state.error!!)
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                TBPrimaryButton(
+                    text = "Login",
+                    onClick = component::login,
+                    isLoading = state.isLoading,
+                    icon = TablerIcons.Video
+                )
+
+                // Divider "or"
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = if (isDark) Color.White.copy(0.1f) else Color.Black.copy(0.05f))
+                    Text(" or ", color = TBColors.TextMuted, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 12.dp))
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = if (isDark) Color.White.copy(0.1f) else Color.Black.copy(0.05f))
+                }
+
+                // University Login Hint (Replacement for Google)
+                OutlinedButton(
+                    onClick = { /* University SSO if any */ },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = TBShapes.Button,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TBColors.TextPrimary),
+                    border = BorderStroke(1.dp, if (isDark) Color.White.copy(0.1f) else Color.Black.copy(0.1f))
+                ) {
+                    Text("Login with University ID", fontWeight = FontWeight.SemiBold)
                 }
             }
-        )
-        ClickableText(
-            text = registerString
-        ) { offset ->
-            registerString.getStringAnnotations(
-                offset, offset
-            ).forEach {
-                when(it.tag) {
-                    regString -> {
-                        onRegisterClick()
-                    }
-                }
+
+            Spacer(Modifier.height(32.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Don't have an account? ",
+                    color = if (isDark) TBColors.TextSecondaryDark else TBColors.TextSecondary,
+                    fontSize = 14.sp
+                )
+                Text(
+                    "Create Account",
+                    color = TBColors.Primary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable(onClick = component::goToRegister)
+                )
             }
+            
+            Spacer(Modifier.height(60.dp))
         }
     }
 }

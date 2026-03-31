@@ -1,0 +1,209 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: temubelajar_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Allenth17
+      POSTGRES_DB: TemuBelajar
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 512m
+
+  # Auth Service
+  auth_service:
+    build:
+      context: ./services/auth_service
+      dockerfile: Dockerfile
+    container_name: auth_service
+    environment:
+      DATABASE_URL: postgres://postgres:Allenth17@postgres:5432/temubelajar_auth
+      POOL_SIZE: "10"
+      SECRET_KEY_BASE: dev_secret_key_base_auth_service_at_least_64_chars_long_replace_in_production
+      PORT: "4001"
+      EMAIL_SERVICE_URL: http://email_service:4005
+      ELIXIR_ERL_OPTIONS: "+P 500000 +Q 65536 +MBas aobf +MBlmbcs 512"
+    ports:
+      - "4001:4001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    mem_limit: 256m
+
+  # User Service
+  user_service:
+    build:
+      context: ./services/user_service
+      dockerfile: Dockerfile
+    container_name: user_service
+    environment:
+      DATABASE_URL: postgres://postgres:Allenth17@postgres:5432/temubelajar_user
+      POOL_SIZE: "10"
+      SECRET_KEY_BASE: dev_secret_key_base_user_service_at_least_64_chars_long_replace_in_production
+      PORT: "4002"
+      ELIXIR_ERL_OPTIONS: "+P 500000 +Q 65536 +MBas aobf +MBlmbcs 512"
+    ports:
+      - "4002:4002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4002/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    mem_limit: 256m
+
+  # Email Service
+  email_service:
+    build:
+      context: ./services/email_service
+      dockerfile: Dockerfile
+    container_name: email_service
+    environment:
+      SECRET_KEY_BASE: dev_secret_key_base_email_service_at_least_64_chars_long_replace_in_production
+      PORT: "4005"
+      SMTP_EMAIL: ${SMTP_EMAIL}
+      SMTP_PASS: ${SMTP_PASS}
+      ELIXIR_ERL_OPTIONS: "+P 100000 +Q 16384 +MBas aobf +MBlmbcs 512"
+    ports:
+      - "4005:4005"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4005/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    mem_limit: 128m
+  # Signaling Service
+  signaling_service:
+    build:
+      context: ./services/signaling_service
+      dockerfile: Dockerfile
+    container_name: signaling_service
+    environment:
+      SECRET_KEY_BASE: dev_secret_key_base_signaling_service_at_least_64_chars_long_replace_in_production
+      PORT: "4003"
+      AUTH_SERVICE_URL: http://auth_service:4001
+      MATCHMAKING_SERVICE_URL: http://matchmaking_service:4004
+      ELIXIR_ERL_OPTIONS: "+P 500000 +Q 65536 +MBas aobf +MBlmbcs 512"
+    ports:
+      - "4003:4003"
+    depends_on:
+      auth_service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4003/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    mem_limit: 256m
+
+  # Matchmaking Service
+  matchmaking_service:
+    build:
+      context: ./services/matchmaking_service
+      dockerfile: Dockerfile
+    container_name: matchmaking_service
+    environment:
+      SECRET_KEY_BASE: dev_secret_key_base_matchmaking_service_at_least_64_chars_long_replace_in_production
+      PORT: "4004"
+      AUTH_SERVICE_URL: http://auth_service:4001
+      ELIXIR_ERL_OPTIONS: "+P 500000 +Q 65536 +MBas aobf +MBlmbcs 512"
+    ports:
+      - "4004:4004"
+    depends_on:
+      auth_service:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4004/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    mem_limit: 256m
+
+  # API Gateway
+  api_gateway:
+    build:
+      context: ./services/api_gateway
+      dockerfile: Dockerfile
+    container_name: api_gateway
+    environment:
+      SECRET_KEY_BASE: dev_secret_key_base_api_gateway_at_least_64_chars_long_replace_in_production
+      PORT: "4000"
+      AUTH_SERVICE_URL: http://auth_service:4001
+      USER_SERVICE_URL: http://user_service:4002
+      EMAIL_SERVICE_URL: http://email_service:4005
+      SIGNALING_SERVICE_URL: http://signaling_service:4003
+      MATCHMAKING_SERVICE_URL: http://matchmaking_service:4004
+      SOCIAL_SERVICE_URL: http://social_service:4006
+      ELIXIR_ERL_OPTIONS: "+P 500000 +Q 65536 +MBas aobf +MBlmbcs 512"
+    ports:
+      - "4000:4000"
+    depends_on:
+      auth_service:
+        condition: service_healthy
+      user_service:
+        condition: service_healthy
+      email_service:
+        condition: service_healthy
+      signaling_service:
+        condition: service_healthy
+      matchmaking_service:
+        condition: service_healthy
+      social_service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    mem_limit: 256m
+
+  # Social Service
+  social_service:
+    build:
+      context: ./services/social_service
+      dockerfile: Dockerfile
+    container_name: social_service
+    environment:
+      DATABASE_URL: postgres://postgres:Allenth17@postgres:5432/temubelajar_social
+      POOL_SIZE: "10"
+      SECRET_KEY_BASE: dev_secret_key_base_social_service_at_least_64_chars_long_replace_in_production
+      PORT: "4006"
+      ELIXIR_ERL_OPTIONS: "+P 500000 +Q 65536 +MBas aobf +MBlmbcs 512"
+    ports:
+      - "4006:4006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4006/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    mem_limit: 256m
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: temubelajar_network
+

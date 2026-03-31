@@ -1,101 +1,119 @@
 [versions]
-agp = "8.7.3"
-android-compileSdk = "35"
+agp = "8.13.2"
+android-compileSdk = "36"
 android-minSdk = "24"
 android-targetSdk = "35"
 androidx-activity = "1.10.1"
-#androidx-appcompat = "1.7.1"
-#androidx-constraintlayout = "2.2.1"
-#androidx-core = "1.16.0"
-#androidx-espresso = "3.6.1"
 androidx-lifecycle = "2.9.1"
-#androidx-testExt = "1.2.1"
 cameraCamera2 = "1.4.2"
 composeHotReload = "1.0.0-alpha11"
-composeMultiplatform = "1.8.2"
-ffmpegPlatform = "5.1.2-1.5.8"
-javacvPlatform = "1.5.8"
-#junit = "4.13.2"
-kotlin = "2.2.0"
+composeMultiplatform = "1.10.2"
+kotlin = "2.3.10"
 kotlinx-coroutines = "1.10.2"
-opencvPlatform = "4.6.0-1.5.8"
+kotlinx-datetime = "0.6.1"
 webcamCapture = "0.3.12"
-perm = "0.37.2"
+perm = "0.37.3"
 compose-material-icons-extended = "1.7.8"
-navigationCompose = "2.8.0-alpha10"
-kotlinSerialization = "1.8.1"
+kotlinSerialization = "1.10.0"
 koin = "4.0.0"
 ktor = "3.0.0"
 coil3 = "3.0.0-rc02"
-ksp = "2.2.0-2.0.2"
-sqlite = "2.5.2"
-room = "2.7.2"
 composeIcons = "1.1.1"
+# Navigation / architecture
+decompose = "3.5.0-beta01"
+essenty = "2.5.0"
+composeCupertino = "3.3.1"
+streamWebrtc = "1.3.10"
+# Desktop heavy deps (only in feature:videochat desktopMain)
+ffmpegPlatform = "5.1.2-1.5.8"
+javacvPlatform = "1.5.8"
+opencvPlatform = "4.6.0-1.5.8"
+lottieCompose = "2.1.0"
+# Real WebRTC for Desktop JVM (libwebrtc native via JNI)
+webrtcJava = "0.14.0"
 
 [libraries]
+# AndroidX
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCamera2" }
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "cameraCamera2" }
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraCamera2" }
-ffmpeg-platform = { module = "org.bytedeco:ffmpeg-platform", version.ref = "ffmpegPlatform" }
-javacv-platform = { module = "org.bytedeco:javacv-platform", version.ref = "javacvPlatform" }
-kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
-#kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
-#junit = { module = "junit:junit", version.ref = "junit" }
-#androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
-#androidx-testExt-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-testExt" }
-#androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso" }
-#androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
-#androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "androidx-constraintlayout" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 
+# Coroutines
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
-opencv-platform = { module = "org.bytedeco:opencv-platform", version.ref = "opencvPlatform" }
+
+# Date/time
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+
+# Desktop camera (Sarxos)
 webcam-capture = { module = "com.github.sarxos:webcam-capture", version.ref = "webcamCapture" }
-webcam-capture-driver-opencv = { module = "com.github.sarxos:webcam-capture-driver-opencv", version.ref = "webcamCapture" }
 webcam-capture-driver-v4l4j = { module = "com.github.sarxos:webcam-capture-driver-v4l4j", version.ref = "webcamCapture" }
-accompanist-permission = { module="com.google.accompanist:accompanist-permissions", version.ref="perm" }
+webcam-capture-driver-opencv = { module = "com.github.sarxos:webcam-capture-driver-opencv", version.ref = "webcamCapture" }
+ffmpeg-platform = { module = "org.bytedeco:ffmpeg-platform", version.ref = "ffmpegPlatform" }
+javacv-platform = { module = "org.bytedeco:javacv-platform", version.ref = "javacvPlatform" }
+opencv-platform = { module = "org.bytedeco:opencv-platform", version.ref = "opencvPlatform" }
+# webrtc-java: real libwebrtc (Chromium) for JVM Desktop — VP8/H.264 P2P video
+webrtc-java = { module = "dev.onvoid.webrtc:webrtc-java", version.ref = "webrtcJava" }
+webrtc-java-linux = { module = "dev.onvoid.webrtc:webrtc-java", version.ref = "webrtcJava" }
+webrtc-java-macos-arm = { module = "dev.onvoid.webrtc:webrtc-java", version.ref = "webrtcJava" }
+webrtc-java-windows = { module = "dev.onvoid.webrtc:webrtc-java", version.ref = "webrtcJava" }
+
+# Permissions
+accompanist-permission = { module = "com.google.accompanist:accompanist-permissions", version.ref = "perm" }
 compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "compose-material-icons-extended" }
 
-jetbrains-compose-navigation = { group = "org.jetbrains.androidx.navigation", name = "navigation-compose", version.ref= "navigationCompose"}
+# Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinSerialization" }
 
+# Koin DI
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 
+# Ktor HTTP + WebSockets
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
+ktor-client-wasmJs = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
+ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 
+# Coil image loading (stable release)
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil3" }
 coil-compose-core = { module = "io.coil-kt.coil3:coil-compose-core", version.ref = "coil3" }
-coil-network-ktor2 = { module = "io.coil-kt.coil3:coil-network-ktor2", version.ref = "coil3" }
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil3" }
 coil-mp = { module = "io.coil-kt.coil3:coil", version.ref = "coil3" }
 
-androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
-androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
-
-
-compose-icons-cssGg = { module = "br.com.devsrsouza.compose.icons:css-gg", version.ref = "composeIcons" }
-compose-icons-weatherIcons = { module = "br.com.devsrsouza.compose.icons:erikflowers-weather-icons", version.ref = "composeIcons" }
-compose-icons-evaIcons = { module = "br.com.devsrsouza.compose.icons:eva-icons", version.ref = "composeIcons" }
+# Icons
 compose-icons-feather = { module = "br.com.devsrsouza.compose.icons:feather", version.ref = "composeIcons" }
 compose-icons-fontAwesome = { module = "br.com.devsrsouza.compose.icons:font-awesome", version.ref = "composeIcons" }
-compose-icons-lineAwesome = { module = "br.com.devsrsouza.compose.icons:line-awesome", version.ref = "composeIcons" }
-compose-icons-linea = { module = "br.com.devsrsouza.compose.icons:linea", version.ref = "composeIcons" }
-compose-icons-octicons = { module = "br.com.devsrsouza.compose.icons:octicons", version.ref = "composeIcons" }
-compose-icons-simpleIcons = { module = "br.com.devsrsouza.compose.icons:simple-icons", version.ref = "composeIcons" }
 compose-icons-tablerIcons = { module = "br.com.devsrsouza.compose.icons:tabler-icons", version.ref = "composeIcons" }
+
+# Arkivanov Decompose (stable)
+decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
+decompose-extensionComposeJetbrains = { module = "com.arkivanov.decompose:extensions-compose", version.ref = "decompose" }
+essenty-lifecycle = { module = "com.arkivanov.essenty:lifecycle", version.ref = "essenty" }
+
+# Compose Cupertino
+compose-cupertino-adaptive = { module = "io.github.robinpcrd:cupertino-adaptive", version.ref = "composeCupertino" }
+compose-cupertino-icons-extended = { module = "io.github.robinpcrd:cupertino-icons-extended", version.ref = "composeCupertino" }
+
+# Stream WebRTC Android
+stream-webrtc-android = { module = "io.getstream:stream-webrtc-android", version.ref = "streamWebrtc" }
+stream-webrtc-android-ui = { module = "io.getstream:stream-webrtc-android-ui", version.ref = "streamWebrtc" }
+
+# Lottie animations (compottie — Compose Multiplatform)
+lottie-compose = { module = "io.github.alexzhirkevich:compottie", version.ref = "lottieCompose" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -105,8 +123,6 @@ composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMul
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 jetbrains-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-room = { id = "androidx.room", version.ref = "room" }
 
 [bundles]
 ktor = [
@@ -115,11 +131,11 @@ ktor = [
     "ktor-client-auth",
     "ktor-client-logging",
     "ktor-serialization-kotlinx-json",
+    "ktor-client-websockets",
 ]
 coil = [
     "coil-compose",
     "coil-compose-core",
-    "coil-network-ktor2",
     "coil-network-ktor3",
     "coil-mp"
 ]

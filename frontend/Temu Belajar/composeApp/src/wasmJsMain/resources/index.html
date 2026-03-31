@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TemuBelajar — Teman Baru dari Kampus Berbeda</title>
+    <meta name="description" content="Platform video chat random antar mahasiswa kampus. Temukan teman baru dari seluruh Indonesia.">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0A0A1A;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        #loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.2rem;
+            color: #fff;
+            font-family: system-ui, sans-serif;
+        }
+        #loading-icon {
+            width: 72px; height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg,#6366f1,#a855f7);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%,100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
+            50%      { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(99,102,241,0); }
+        }
+        .spinner {
+            width: 32px; height: 32px;
+            border: 3px solid rgba(99,102,241,0.3);
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loading-text { font-size: 0.9rem; color: rgba(255,255,255,0.6); }
+        canvas { width: 100vw !important; height: 100vh !important; }
+
+        /* Camera permission overlay — shown while asking for permission */
+        #perm-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: #0A0A1A;
+            z-index: 99999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            font-family: system-ui, sans-serif;
+            color: #fff;
+        }
+        #perm-overlay.visible { display: flex; }
+        #perm-card {
+            background: #1A1A2E;
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 320px;
+            width: 90%;
+            text-align: center;
+            display: flex; flex-direction: column; gap: 1rem;
+        }
+        #perm-icons { font-size: 2.5rem; display: flex; gap: 1rem; justify-content: center; }
+        #perm-title { font-size: 1.1rem; font-weight: 700; }
+        #perm-desc  { font-size: 0.85rem; color: rgba(255,255,255,0.65); line-height: 1.5; }
+        #perm-btn {
+            background: #6366f1; color: #fff;
+            border: none; border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.95rem; font-weight: 600;
+            cursor: pointer;
+        }
+        #perm-btn:hover { background: #5254cc; }
+        #perm-denied { font-size: 0.8rem; color: #f87171; display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Loading splash -->
+    <div id="loading">
+        <div id="loading-icon">📚</div>
+        <div class="spinner"></div>
+        <div id="loading-text">Memuat TemuBelajar...</div>
+    </div>
+
+    <!-- Camera permission overlay (shown before Kotlin loads) -->
+    <div id="perm-overlay">
+        <div id="perm-card">
+            <div id="perm-icons">📷 🎤</div>
+            <div id="perm-title">Izin Kamera & Mikrofon</div>
+            <div id="perm-desc">
+                TemuBelajar membutuhkan akses kamera dan mikrofon untuk video call dengan sesama mahasiswa.
+            </div>
+            <button id="perm-btn">Izinkan Akses</button>
+            <div id="perm-denied">
+                Akses ditolak. Izinkan di address bar browser, lalu muat ulang.
+            </div>
+        </div>
+    </div>
+
+    <script>
+    /**
+     * Pre-acquire camera+mic BEFORE loading the Kotlin WASM bundle.
+     *
+     * Strategy:
+     *  1. Call getUserMedia() here in plain JS (no Kotlin coroutines involved).
+     *  2. Store the resolved MediaStream in window.__tbStream.
+     *  3. Only inject <script src="composeApp.js"> after the stream is ready.
+     *
+     * This way Kotlin sees a synchronously-accessible stream — zero awaiting,
+     * zero thread blocking, zero freeze.
+     */
+    (function() {
+        var overlay  = document.getElementById('perm-overlay');
+        var permBtn  = document.getElementById('perm-btn');
+        var permDenied = document.getElementById('perm-denied');
+        var loadText = document.getElementById('loading-text');
+
+        window.__tbStream = null;  // will hold the MediaStream
+
+        function loadKotlinApp() {
+            var s = document.createElement('script');
+            s.src = 'composeApp.js';
+            document.body.appendChild(s);
+        }
+
+        function acquireStream() {
+            return navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(function(stream) {
+                    window.__tbStream = stream;
+                    overlay.classList.remove('visible');
+                    loadText.textContent = 'Menyiapkan aplikasi...';
+                    loadKotlinApp();
+                })
+                .catch(function(err) {
+                    console.warn('[TemuBelajar] Camera denied:', err.name, err.message);
+                    permDenied.style.display = 'block';
+                    permBtn.textContent = 'Coba Lagi';
+                    // Still load the app — user can navigate without camera
+                    window.__tbStream = null;
+                    overlay.classList.remove('visible');
+                    loadKotlinApp();
+                });
+        }
+
+        permBtn.addEventListener('click', function() {
+            permBtn.disabled = true;
+            permBtn.textContent = 'Meminta izin...';
+            acquireStream();
+        });
+
+        // Check if permission already granted (no dialog needed)
+        if (navigator.permissions) {
+            navigator.permissions.query({ name: 'camera' }).then(function(result) {
+                if (result.state === 'granted') {
+                    // Already granted — acquire silently, no overlay
+                    acquireStream();
+                } else {
+                    // Need to show our permission UI
+                    document.getElementById('loading').style.display = 'none';
+                    overlay.classList.add('visible');
+                }
+            }).catch(function() {
+                // permissions API not supported — show overlay
+                document.getElementById('loading').style.display = 'none';
+                overlay.classList.add('visible');
+            });
+        } else {
+            // No permissions API — just try acquiring directly
+            acquireStream();
+        }
+    })();
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,157 @@
+name: Desktop Build
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  JAVA_OPTS: "-Xmx4g -XX:+UseG1GC"
+  GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dkotlin.incremental=false"
+
+defaults:
+  run:
+    working-directory: "frontend/Temu Belajar"
+
+jobs:
+  build-desktop:
+    name: Build Desktop Distribution (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact-suffix: linux-deb
+            artifact-glob: "composeApp/build/compose/binaries/main/deb/*.deb"
+            display-name: Linux (.deb)
+          - os: macos-latest
+            artifact-suffix: macos-dmg
+            artifact-glob: "composeApp/build/compose/binaries/main/dmg/*.dmg"
+            display-name: macOS (.dmg)
+          - os: windows-latest
+            artifact-suffix: windows-msi
+            artifact-glob: "composeApp/build/compose/binaries/main/msi/*.msi"
+            display-name: Windows (.msi)
+
+    steps:
+      # ── 1. Source ────────────────────────────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── 2. Toolchain ─────────────────────────────────────────────────────────
+      - name: Setup Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      # ── 3. Linux system dependencies ─────────────────────────────────────────
+      # Compose Desktop on Linux requires GTK3 dev headers and fakeroot/dpkg
+      # for packaging into a .deb archive.
+      - name: Install Linux packaging dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-3-dev \
+            libxext-dev \
+            libxrender-dev \
+            libxtst-dev \
+            libx11-dev \
+            fakeroot \
+            dpkg \
+            binutils
+        working-directory: ${{ github.workspace }}
+
+      # ── 4. Caches ────────────────────────────────────────────────────────────
+      - name: Cache Gradle wrappers & caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('frontend/Temu Belajar/gradle/libs.versions.toml', 'frontend/Temu Belajar/**/*.gradle.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # ── 5. Prepare Gradle ────────────────────────────────────────────────────
+      - name: Make gradlew executable (Unix)
+        if: runner.os != 'Windows'
+        run: chmod +x gradlew
+
+      - name: Remove hardcoded local Java home from gradle.properties (Unix)
+        # The repo has org.gradle.java.home pointing to the developer's machine.
+        # Strip it so the CI-provided JAVA_HOME (set by setup-java) is used.
+        if: runner.os != 'Windows'
+        run: |
+          grep -v 'org.gradle.java.home' gradle.properties > gradle.properties.tmp
+          mv gradle.properties.tmp gradle.properties
+          echo "=== gradle.properties after patch ==="
+          cat gradle.properties
+
+      - name: Remove hardcoded local Java home from gradle.properties (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $content = Get-Content gradle.properties | Where-Object { $_ -notmatch 'org\.gradle\.java\.home' }
+          Set-Content gradle.properties $content
+          Write-Host "=== gradle.properties after patch ==="
+          Get-Content gradle.properties
+
+      # ── 6. Build ─────────────────────────────────────────────────────────────
+      - name: Build Desktop distribution package\
+        shell: hash
+        run: |
+          ./gradlew :composeApp:packageDistributionForCurrentOS \
+            --no-daemon \
+            --stacktrace
+
+      # ── 7. Post-build info ───────────────────────────────────────────────────
+      - name: Display built packages (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          echo "=== Compose Desktop build outputs ==="
+          find composeApp/build/compose/binaries -type f \( \
+            -name "*.deb" -o -name "*.dmg" -o -name "*.msi" -o -name "*.exe" \
+          \) | while read f; do
+            echo "📦  $(ls -lh "$f" | awk '{print $5, $9}')"
+          done
+
+      - name: Display built packages (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "=== Compose Desktop build outputs ==="
+          Get-ChildItem -Recurse composeApp/build/compose/binaries `
+            -Include *.msi,*.exe,*.deb,*.dmg |
+            ForEach-Object { Write-Host "📦  $($_.FullName) ($([math]::Round($_.Length/1MB,2)) MB)" }
+
+      # ── 8. Artifacts ─────────────────────────────────────────────────────────
+      - name: Upload Desktop distribution package
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TemuBelajar-Desktop-${{ matrix.artifact-suffix }}-${{ github.sha }}
+          path: "frontend/Temu Belajar/${{ matrix.artifact-glob }}"
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload build reports (on failure)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: desktop-build-reports-${{ matrix.os }}-${{ github.sha }}
+          path: |
+            frontend/Temu Belajar/composeApp/build/reports/
+            frontend/Temu Belajar/build/reports/
+          retention-days: 3
+          if-no-files-found: ignore

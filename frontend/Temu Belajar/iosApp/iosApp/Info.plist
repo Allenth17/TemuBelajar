@@ -5,8 +5,10 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-    <string>This app needs access to your camera for video preview</string>
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>Photo Library permission is required for the app to work.</string>
+	<string>TemuBelajar membutuhkan akses kamera untuk video call dengan sesama mahasiswa.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>TemuBelajar membutuhkan akses mikrofon untuk berbicara saat video call.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>TemuBelajar membutuhkan akses galeri foto.</string>
 </dict>
 </plist>

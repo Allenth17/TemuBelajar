@@ -1,0 +1,111 @@
+name: iOS Build
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  # ── Build KMP iOS Framework ───────────────────────────────────────────────────
+  build-ios:
+    name: Build iOS (macOS 26 / Xcode 26)
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Cache Gradle to dramatically speed up KMP compilation
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.kts', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Make gradlew executable
+        working-directory: "frontend/Temu Belajar"
+        run: chmod +x gradlew
+
+      # Compile Kotlin → iOS framework (simulator arm64 for CI speed)
+      - name: Build KMP iOS Simulator Framework
+        working-directory: "frontend/Temu Belajar"
+        run: |
+          ./gradlew \
+            :composeApp:linkDebugFrameworkIosSimulatorArm64 \
+            --no-daemon \
+            --stacktrace
+
+      # Build iOS app using xcodebuild (simulator)
+      - name: Build iOS App (Simulator)
+        working-directory: "frontend/Temu Belajar/iosApp"
+        run: |
+          xcodebuild \
+            -scheme iosApp \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -derivedDataPath build/DerivedData \
+            build \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty || xcodebuild \
+              -scheme iosApp \
+              -configuration Debug \
+              -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+              -derivedDataPath build/DerivedData \
+              build \
+              CODE_SIGNING_ALLOWED=NO
+
+      # ── Release-only: Archive + export IPA ───────────────────────────────────
+      - name: Build Release Framework
+        if: github.ref == 'refs/heads/main'
+        working-directory: "frontend/Temu Belajar"
+        run: |
+          ./gradlew \
+            :composeApp:linkReleaseFrameworkIosArm64 \
+            --no-daemon
+
+      - name: Archive iOS App (Release only)
+        if: github.ref == 'refs/heads/main'
+        working-directory: "frontend/Temu Belajar/iosApp"
+        run: |
+          xcodebuild \
+            -scheme iosApp \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath ${{ runner.temp }}/iosApp.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Export IPA
+        if: github.ref == 'refs/heads/main'
+        working-directory: "frontend/Temu Belajar/iosApp"
+        run: |
+          xcodebuild \
+            -exportArchive \
+            -archivePath ${{ runner.temp }}/iosApp.xcarchive \
+            -exportPath ${{ runner.temp }}/iosApp-export \
+            -exportOptionsPlist ExportOptions.plist \
+            || echo "IPA export skipped (missing provisioning profile in CI)"
+
+      - name: Upload IPA artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: TemuBelajar-iosApp-${{ github.sha }}
+          path: ${{ runner.temp }}/iosApp-export/*.ipa
+          if-no-files-found: warn
+          retention-days: 30

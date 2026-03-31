@@ -1,0 +1,27 @@
+# IDE files
+.idea/
+.kilo/
+*.iml
+
+# Environment secrets
+**/.env
+.env.*
+
+# Build artifacts and logs
+**/build/
+**/_build/
+**/deps/
+**/node_modules/
+**/*.log
+frontend/Temu Belajar/build_errors*.txt
+frontend/Temu Belajar/build_log.txt
+frontend/Temu Belajar/compile_log.txt
+frontend/Temu Belajar/compose_log.txt
+
+# Test/Temporary Data
+users.json
+otp.json
+sessions.json
+
+# System files
+.DS_Store

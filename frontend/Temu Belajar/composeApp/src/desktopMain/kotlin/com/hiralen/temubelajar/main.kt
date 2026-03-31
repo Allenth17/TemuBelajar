@@ -7,26 +7,35 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import com.hiralen.temubelajar.app.App
-import com.hiralen.temubelajar.di.initKoin
+import androidx.compose.runtime.remember
+import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.hiralen.temubelajar.app.RootComponent
+import com.hiralen.temubelajar.app.RootContent
+import com.hiralen.temubelajar.core.di.initKoin
 
-fun main() = application {
+fun main() {
     initKoin()
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "Temu Belajar",
-        undecorated = false,
-        resizable = false,
-        state = rememberWindowState(
-            size = DpSize(
-                width = 500.dp,
-                height = 1000.dp
-            ),
-            position = WindowPosition.Aligned(
-                alignment = Alignment.Center
+
+    application {
+        val lifecycle = remember { LifecycleRegistry() }
+        val rootComponent = remember {
+            RootComponent(
+                componentContext = DefaultComponentContext(lifecycle = lifecycle)
             )
-        )
-    ) {
-        App()
+        }
+
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "TemuBelajar",
+            alwaysOnTop = false,
+            undecorated = true,
+            resizable = false,
+            state = rememberWindowState(
+                placement = androidx.compose.ui.window.WindowPlacement.Fullscreen
+            )
+        ) {
+            RootContent(component = rootComponent)
+        }
     }
 }

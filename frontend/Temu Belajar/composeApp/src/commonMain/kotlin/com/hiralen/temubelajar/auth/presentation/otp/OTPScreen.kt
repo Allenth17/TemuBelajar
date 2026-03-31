@@ -1,153 +1,218 @@
 package com.hiralen.temubelajar.auth.presentation.otp
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.hiralen.temubelajar.auth.presentation.AuthViewModel
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import com.hiralen.temubelajar.auth.presentation.components.HeaderText
-import com.hiralen.temubelajar.auth.presentation.components.OtpTextField
-import com.hiralen.temubelajar.core.presentation.defaultPadding
+import androidx.compose.ui.unit.*
+import com.hiralen.temubelajar.auth.component.OTPComponent
+import com.hiralen.temubelajar.core.ui.*
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 
 @Composable
-fun OTPScreen(
-    viewModel: AuthViewModel,
-    onVerificationSuccess: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val otpState by viewModel.otpState.collectAsStateWithLifecycle()
-    val rOtpState by viewModel.rOtpState.collectAsStateWithLifecycle()
-    val otp = rememberSaveable { mutableStateOf("") }
-    val focusManager = LocalFocusManager.current
-    val email by viewModel.emailState.collectAsStateWithLifecycle()
-    val snackbarState = remember { SnackbarHostState() }
+fun OTPScreen(component: OTPComponent) {
+    val state by component.state.collectAsState()
 
-    LaunchedEffect(
-        otp.value
-    ) {
-        viewModel.updateOtp(otp.value)
-    }
-
-    LaunchedEffect(otpState) {
-        when (val state = otpState) {
-            is OTPState.Success -> {
-                onVerificationSuccess()
-                focusManager.clearFocus()
-                otp.value = ""
-
-                viewModel.resetOtpState()
-            }
-
-            is OTPState.Error -> {
-                val error = state.message
-                viewModel.resetOtpState()
-            }
-
-            else -> {
-
-            }
-        }
-    }
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(defaultPadding),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(TBColors.Background)
     ) {
-        HeaderText(
-            text = "OTP Verification",
-            modifier = modifier.padding(vertical = defaultPadding)
-        )
-
-        Text(
-            text = "Kode OTP telah dikirim ke:",
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Text(
-            text = email,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            ),
+        // Orange Wave Background (consistent with Login/Register)
+        Box(
             modifier = Modifier
-                .padding(bottom = 32.dp)
+                .fillMaxWidth()
+                .fillMaxHeight(0.45f)
+                .clip(RoundedCornerShape(bottomStart = 80.dp, bottomEnd = 80.dp))
                 .background(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(8.dp)
+                    Brush.verticalGradient(
+                        listOf(TBColors.Primary, Color(0xFFE35336).copy(alpha = 0.8f))
+                    )
                 )
-                .padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            OtpTextField(
-                otpText = otp.value,
-                onOtpTextChange = { updatedOtp ->
-                    otp.value = updatedOtp
-                },
-                modifier = Modifier.weight(0.7f)
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            TextButton(
-                onClick = { viewModel.resendOtp() },
-                modifier = Modifier.weight(0.3f)
+            TBCard(
+                modifier = Modifier
+                    .widthIn(max = 440.dp)
+                    .padding(vertical = 32.dp)
             ) {
-                Text(
-                    "Resend OTP",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
+                Column(
+                    modifier = Modifier.padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Header Area
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .background(TBColors.Primary.copy(alpha = 0.1f), RoundedCornerShape(30.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Using TBLottie for "robot_sync.json" or similar if available, 
+                        // otherwise a premium Icon. For now, a styled icon.
+                        Icon(
+                            TablerIcons.ShieldCheck,
+                            contentDescription = null,
+                            tint = TBColors.Primary,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
 
-        Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(Modifier.height(24.dp))
 
-        Button(
-            onClick = {
-                viewModel.verifyOtp()
-                focusManager.clearFocus()
-            },
-            modifier = modifier.fillMaxWidth(),
-            enabled = otp.value.length == 6
-        ) {
-            if (otpState is OTPState.Loading) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-            } else {
-                Text("Verify OTP")
+                    Text(
+                        "Verify Email",
+                        fontSize = 26.sp,
+                        fontFamily = TBFonts.Outfit,
+                        fontWeight = FontWeight.Bold,
+                        color = TBColors.TextPrimary
+                    )
+                    
+                    Spacer(Modifier.height(8.dp))
+                    
+                    Text(
+                        "We've sent a 6-digit code to\n${component.email}",
+                        fontSize = 14.sp,
+                        fontFamily = TBFonts.Outfit,
+                        color = TBColors.TextSecondary,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 20.sp
+                    )
+
+                    Spacer(Modifier.height(32.dp))
+
+                    // OTP Input Fields (Custom Large Styled)
+                    OutlinedTextField(
+                        value = state.otp,
+                        onValueChange = { if (it.length <= 6) component.onOtpChange(it) },
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = LocalTextStyle.current.copy(
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            textAlign = TextAlign.Center,
+                            letterSpacing = 16.sp,
+                            color = TBColors.Primary,
+                            fontFamily = TBFonts.Outfit
+                        ),
+                        placeholder = {
+                            Text(
+                                "000000",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                                fontSize = 32.sp,
+                                letterSpacing = 16.sp,
+                                color = TBColors.TextHint,
+                                fontWeight = FontWeight.Light,
+                                fontFamily = TBFonts.Outfit
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = TBColors.Primary,
+                            unfocusedBorderColor = TBColors.CardBorder,
+                            focusedContainerColor = TBColors.Background,
+                            unfocusedContainerColor = TBColors.Background
+                        ),
+                        shape = RoundedCornerShape(20.dp),
+                        singleLine = true
+                    )
+
+                    if (state.error != null) {
+                        Spacer(Modifier.height(16.dp))
+                        TBErrorBanner(state.error!!)
+                    }
+
+                    if (state.successMessage != null) {
+                        Spacer(Modifier.height(16.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF4CAF50).copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                state.successMessage!!, 
+                                color = Color(0xFF2E7D32), 
+                                fontSize = 13.sp, 
+                                textAlign = TextAlign.Center, 
+                                modifier = Modifier.fillMaxWidth(),
+                                fontFamily = TBFonts.Outfit
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(32.dp))
+
+                    TBPrimaryButton(
+                        text = "Verify Code",
+                        onClick = component::verify,
+                        isLoading = state.isLoading,
+                        enabled = state.otp.length == 6,
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = TablerIcons.ArrowRight
+                    )
+
+                    Spacer(Modifier.height(24.dp))
+
+                    // Resend Section
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Didn't receive code? ", 
+                            color = TBColors.TextSecondary, 
+                            fontSize = 14.sp,
+                            fontFamily = TBFonts.Outfit
+                        )
+                        if (state.isResending) {
+                            CircularProgressIndicator(
+                                color = TBColors.Primary, 
+                                modifier = Modifier.size(16.dp), 
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                "Resend",
+                                color = TBColors.Primary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = TBFonts.Outfit,
+                                modifier = Modifier.clickable(onClick = component::resend)
+                            )
+                        }
+                    }
+                }
             }
+            
+            // Helpful Tip
+            Text(
+                "Check your spam folder if you haven't received the email.",
+                fontSize = 12.sp,
+                color = TBColors.TextSecondary.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 16.dp),
+                fontFamily = TBFonts.Outfit
+            )
         }
     }
 }

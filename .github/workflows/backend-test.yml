@@ -1,0 +1,218 @@
+name: Backend Elixir Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Elixir/OTP versions used across all jobs
+# ─────────────────────────────────────────────────────────────────────────────
+env:
+  ELIXIR_VERSION: "1.17.x"
+  OTP_VERSION: "27.x"
+  MIX_ENV: test
+
+# =============================================================================
+# JOB 1 – Services that do NOT require a database
+#   api_gateway, email_service, matchmaking_service, signaling_service
+# =============================================================================
+jobs:
+  test-no-db:
+    name: "Test ${{ matrix.service }} (no DB)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api_gateway
+          - email_service
+          - matchmaking_service
+          - signaling_service
+
+    defaults:
+      run:
+        working-directory: "backend_elixir/services/${{ matrix.service }}"
+
+    steps:
+      # ── 1. Source ──────────────────────────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── 2. Toolchain ───────────────────────────────────────────────────────
+      - name: Setup Elixir ${{ env.ELIXIR_VERSION }} / OTP ${{ env.OTP_VERSION }}
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+
+      # ── 3. Caches ──────────────────────────────────────────────────────────
+      - name: Restore Mix dependency cache
+        uses: actions/cache@v4
+        id: mix-cache
+        with:
+          path: |
+            backend_elixir/services/${{ matrix.service }}/deps
+            backend_elixir/services/${{ matrix.service }}/_build/test
+          key: ${{ runner.os }}-mix-${{ matrix.service }}-${{ hashFiles(format('backend_elixir/services/{0}/mix.lock', matrix.service)) }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{ matrix.service }}-
+
+      # ── 4. Dependencies ────────────────────────────────────────────────────
+      - name: Fetch Mix dependencies
+        if: steps.mix-cache.outputs.cache-hit != 'true'
+        run: mix deps.get
+
+      - name: Compile dependencies
+        run: mix deps.compile
+
+      # ── 5. Tests ───────────────────────────────────────────────────────────
+      - name: Compile project (test env)
+        run: mix compile --warnings-as-errors
+
+      - name: Run tests with coverage
+        run: mix test --cover --trace
+
+      # ── 6. Artifacts ───────────────────────────────────────────────────────
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-${{ matrix.service }}-${{ github.sha }}
+          path: "backend_elixir/services/${{ matrix.service }}/cover/"
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload test reports on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-reports-${{ matrix.service }}-${{ github.sha }}
+          path: "backend_elixir/services/${{ matrix.service }}/_build/test/lib/"
+          retention-days: 3
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # JOB 2 – Services that require PostgreSQL
+  #   auth_service, user_service
+  # ===========================================================================
+  test-with-db:
+    name: "Test ${{ matrix.service }} (PostgreSQL)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: auth_service
+            db_name: temubelajar_auth_test
+            # auth_service has no ecto test alias; we run ecto tasks manually.
+            needs_manual_ecto: true
+          - service: user_service
+            db_name: temubelajar_user_test
+            # user_service aliases mix test to run ecto.create + ecto.migrate
+            # automatically, but we run them explicitly for clarity.
+            needs_manual_ecto: true
+
+    defaults:
+      run:
+        working-directory: "backend_elixir/services/${{ matrix.service }}"
+
+    # ── PostgreSQL service container ─────────────────────────────────────────
+    # Password matches what test.exs configures (postgres / Allenth17).
+    # The service is reachable at localhost:5432 from the job runner.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: Allenth17
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # ── 1. Source ──────────────────────────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── 2. Toolchain ───────────────────────────────────────────────────────
+      - name: Setup Elixir ${{ env.ELIXIR_VERSION }} / OTP ${{ env.OTP_VERSION }}
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+
+      # ── 3. Caches ──────────────────────────────────────────────────────────
+      - name: Restore Mix dependency cache
+        uses: actions/cache@v4
+        id: mix-cache
+        with:
+          path: |
+            backend_elixir/services/${{ matrix.service }}/deps
+            backend_elixir/services/${{ matrix.service }}/_build/test
+          key: ${{ runner.os }}-mix-${{ matrix.service }}-${{ hashFiles(format('backend_elixir/services/{0}/mix.lock', matrix.service)) }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{ matrix.service }}-
+
+      # ── 4. Dependencies ────────────────────────────────────────────────────
+      - name: Fetch Mix dependencies
+        if: steps.mix-cache.outputs.cache-hit != 'true'
+        run: mix deps.get
+
+      - name: Compile dependencies
+        run: mix deps.compile
+
+      # ── 5. Database setup ──────────────────────────────────────────────────
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+          echo "✅  PostgreSQL is ready"
+
+      - name: Create and migrate test database
+        run: |
+          mix ecto.create --quiet
+          mix ecto.migrate --quiet
+          echo "✅  Database '${{ matrix.db_name }}' created and migrated"
+
+      # ── 6. Tests ───────────────────────────────────────────────────────────
+      - name: Compile project (test env)
+        run: mix compile --warnings-as-errors
+
+      - name: Run tests with coverage
+        run: mix test --cover --trace
+
+      # ── 7. Artifacts ───────────────────────────────────────────────────────
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-${{ matrix.service }}-${{ github.sha }}
+          path: "backend_elixir/services/${{ matrix.service }}/cover/"
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload test reports on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-reports-${{ matrix.service }}-${{ github.sha }}
+          path: "backend_elixir/services/${{ matrix.service }}/_build/test/lib/"
+          retention-days: 3
+          if-no-files-found: ignore
