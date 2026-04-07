@@ -36,7 +36,7 @@ defmodule AuthServiceWeb.SignalingChannel do
 
     # Track semua user di room ini
     topic = "signaling:#{pair_id}"
-    Phoenix.PubSub.subscribe(AuthService.PubSub, topic)
+    # Phoenix.PubSub.subscribe(AuthService.PubSub, topic)
 
     # Cek berapa peer sudah join
     peers_count = get_peers_count(pair_id)
@@ -80,11 +80,11 @@ defmodule AuthServiceWeb.SignalingChannel do
     {:noreply, socket}
   end
 
-  @impl true
-  def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: payload}, socket) do
-    push(socket, event, payload)
-    {:noreply, socket}
-  end
+  # @impl true
+  # def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: payload}, socket) do
+  #   push(socket, event, payload)
+  #   {:noreply, socket}
+  # end
 
   def handle_info(_, socket), do: {:noreply, socket}
 

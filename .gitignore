@@ -25,3 +25,7 @@ sessions.json
 
 # System files
 .DS_Store
+
+# Rust build artifacts
+**/target/
+**/rust/target/

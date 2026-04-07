@@ -1,139 +1,88 @@
-﻿# TemuBelajar
+# TemuBelajar
 
-TemuBelajar is a learning-partner matching and video chat application. The backend is built with FastAPI and provides:
-- Email-based registration with OTP verification
-- Login with email or username, and session tokens saved to sessions.json
-- Profile retrieval using Bearer tokens
-- Simple matchmaking and WebSocket signaling endpoints for peer-to-peer connections
-- In-memory (JSON file-based) storage for users and sessions
+TemuBelajar is a learning-partner matching and video chat application. The project consists of an Elixir-based microservices backend and a Kotlin Multiplatform frontend (capable of running on Android, iOS, Desktop, and Web via WASM).
 
-This README describes how to set up and run the backend locally and outlines a project To-Do list.
+## Repository Structure
 
-Last updated: 2025-08-31 16:55 (local)
+- `backend_elixir/` — Elixir backend consisting of multiple microservices:
+  - `api_gateway` (Port 4000)
+  - `auth_service` (Port 4001)
+  - `user_service` (Port 4002)
+  - `signaling_service` (Port 4003) - WebSocket Signaling
+  - `matchmaking_service` (Port 4004)
+  - `email_service` (Port 4005)
+  - `social_service` (Port 4006)
+- `frontend/Temu Belajar/` — Kotlin Multiplatform (KMP) client application targeting Android, iOS, Desktop, and Web.
 
+---
 
-## Repository structure
-- backend/ — FastAPI backend (primary focus of this README)
-- frontend/ — Mobile/Desktop (Kotlin Multiplatform) and Web clients (under frontend/web)
-- users.json, sessions.json, otp.json — local JSON storage used by the backend
+## 🚀 Running the Backend (Elixir)
 
+The backend is structured as a collection of Elixir microservices. A convenience script is provided to start them all at once.
 
-## Requirements
-- Python 3.10+
-- An SMTP account (e.g., Gmail) for sending OTP codes
-- PowerShell (on Windows) or a shell on other OSes
+### Prerequisites (Backend)
+- Elixir & Mix installed natively, OR
+- Docker & Docker Compose (optional for containerized run)
 
+### Start all services natively
+```bash
+cd backend_elixir
+./start_all.sh
+```
 
-## Setup (Backend)
-1. Create and activate a virtual environment (Windows PowerShell):
-   - python -m venv .venv
-   - .\.venv\Scripts\Activate.ps1
-2. Install dependencies:
-   - pip install fastapi uvicorn bcrypt python-dotenv
-3. Create a .env file in the project root (C:\projek\TemuBelajar\.env) with:
-   - SMTP_EMAIL="your_smtp_email@example.com"
-   - SMTP_PASS="your_smtp_password_or_app_password"
-   (Optional, if you later use JWT in config.py)
-   - JWT_SECRET="some-long-secret"
-   - JWT_ALGORITHM="HS256"
-4. Ensure JSON storage files exist (they will be created if missing):
-   - users.json
-   - sessions.json
-   - otp.json
+### Start all services via Docker
+```bash
+cd backend_elixir
+USE_DOCKER=true ./start_all.sh
+```
+*Note: Make sure you have a `.env` file correctly configured inside `backend_elixir/` if needed.*
 
+Once running, the central **API Gateway** will be accessible at: `http://localhost:4000`.
 
-## Run (Backend)
-From the project root:
-- uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+---
 
-Test health:
-- GET http://localhost:8000/ -> { "message": "backend is running" }
+## 📱 Running the Frontend (Kotlin Multiplatform)
 
+The frontend uses Compose Multiplatform and can be run on multiple targets.
 
-## Key Endpoints (summary)
-- POST /register
-  - body: { email, password, username, name, phone, university }
-  - Sends OTP to the provided email if allowed domain.
-- POST /verify-otp
-  - body: { email, otp }
-  - Verifies and marks user as verified.
-- POST /resend-otp
-  - body: { email }
-  - Sends a fresh OTP if not yet verified.
-- POST /login
-  - body: { email_or_username, password }
-  - Returns: { token, expires_in }
-- GET /me
-  - header: Authorization: Bearer <token>
-  - Returns profile info if token valid.
-- POST /logout
-  - header: Authorization: Bearer <token>
-  - Invalidates the session token.
-- DELETE /expired-sessions
-  - Removes expired sessions (server-side cleanup)
-- WebSockets
-  - /ws — matchmaking queue
-  - /ws/signaling?token=... — signaling channel (token from /login). See backend/app/signaling.py
-- Streaming helpers
-  - POST /match — announce your stream and attempt to match another user
-  - GET /get_stream/{user_id} — fetch a user stream record
-  - POST /disconnect/{user_id} — remove a user from active streams
-  - GET /streams — list all streams (from backend/app/stream_manager.py)
+### Prerequisites (Frontend)
+- Java JDK 11+
+- Android Studio / IntelliJ IDEA with Kotlin Multiplatform plugins.
 
+### Running from Terminal
 
-## Email/OTP configuration
-- backend/app/email_utils.py loads .env from project root.
-- Uses SMTP over SSL (smtp.gmail.com:465) by default. If using Gmail, create an App Password.
-- Allowed domains configured in ALLOWED_DOMAINS within email_utils.py. Adjust to your needs.
+Navigate to the frontend directory first:
+```bash
+cd "frontend/Temu Belajar"
+```
 
+**1. Desktop (JVM)**
+```bash
+./gradlew :composeApp:run
+```
 
-## Maintenance scripts
-- Stream cleanup: python -m backend.app.stream_cleanup
-- OTP and unverified user cleanup: python -m backend.app.cleanup
+**2. Web (WASM)**
+```bash
+./gradlew :composeApp:wasmJsBrowserDevelopmentRun
+```
+*(This will start a local Webpack dev server).*
 
+**3. Android**
+```bash
+./gradlew :composeApp:assembleDebug
+```
+*(Or open the project in Android Studio, select the `composeApp` run configuration, and press **Run** to test on a connected device).*
 
-## Notes
-- Storage uses flat JSON files. See backend/app/main.py for read/write wrappers that keep a { "users": [...] } and { "sessions": [...] } structure.
-- WebSocket signaling requires a valid token; sessions.json stores { token, email, expired_at }.
-- CORS/middleware scaffolding exists under backend/app/middleware.
+**4. iOS**
+iOS compilation requires a macOS machine with Xcode installed. If you are on macOS:
+- Open `iosApp/iosApp.xcworkspace` in Xcode and hit Run, or
+- Use the KMP plugin in Android Studio/IntelliJ.
 
+---
 
-## To-Do
-- Security and data
-  - [x] Migrate from JSON files to a proper database (PostgreSQL)
-  - [ ] Hash secret values and move all secrets to environment variables and/or a vault
-  - [ ] Add password reset flow and email rate limiting
-  - [ ] Implement account lockout/anti-bruteforce protections
-- Email delivery
-  - [ ] Add error handling and retries for SMTP failuresv
-  - [ ] Support async mailers or a queue (e.g., Celery/RQ) to send OTPs
-- API and validation
-  - [ ] Expand OpenAPI docs and add examples/schemas for all endpoints
-  - [ ] Add stricter validation for inputs and consistent error codes/messages
-  - [ ] Add pagination/filtering where applicable
-- WebSocket/signaling
-  - [ ] Persist signaling/matchmaking state and add reconnection handling
-  - [ ] Add authentication to the /ws endpoint (currently open)
-  - [ ] Add presence/heartbeat and auto-cleanup for idle sockets
-- Streaming
-  - [ ] Replace JSON storage for streams with a store that supports TTL/expiry (Redis)
-  - [ ] Add explicit status updates and events for stream lifecycle
-- Observability
-  - [ ] Structured logging and correlation IDs
-  - [ ] Metrics and health checks (Prometheus endpoints)
-  - [ ] Centralized error tracking (Sentry)
-- Testing and quality
-  - [ ] Unit and integration tests for all endpoints
-  - [ ] WebSocket tests (connect, message exchange, disconnect)
-  - [ ] Linting/formatting (ruff/black) and type checking (mypy)
-- DevOps
-  - [ ] Dockerfile and docker-compose for backend + dependencies
-  - [ ] CI pipeline (GitHub Actions) for tests and linting
-  - [ ] Environment-specific configs (dev/staging/prod)
-- Frontend
-  - [ ] Document how to run the Kotlin Multiplatform app
-  - [ ] Document how to run the Web client (frontend/web/TemuBelajar)
-  - [ ] Integrate with backend auth + signaling flows
+## Maintenance & Testing
+The `backend_elixir` directory also contains scripts for testing:
+- `./run_tests.sh` - Run unit/integration tests
+- `./e2e_test.sh` - Run end-to-end tests
 
-
-## License
+*(Refer to individual services inside `backend_elixir/services/` for specific local configurations).*

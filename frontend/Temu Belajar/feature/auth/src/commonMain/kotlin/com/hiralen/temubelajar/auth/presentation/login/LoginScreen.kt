@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.*
+import com.hiralen.temubelajar.core.ui.TBColors
+
 import com.hiralen.temubelajar.auth.component.LoginComponent
 import com.hiralen.temubelajar.core.presentation.isScrollableLayout
 import com.hiralen.temubelajar.core.ui.*
