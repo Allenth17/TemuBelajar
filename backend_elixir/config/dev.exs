@@ -6,7 +6,12 @@ config :temubelajar, TemuBelajar.Repo,
   hostname: "localhost",
   database: "TemuBelajar",
   stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
+  # Phase 8.17 — start_all.sh runs MIX_ENV=dev as a "production-like" local
+  # run, so the dev DB pool can be exposed to the LAN. Surfacing the password
+  # / URL in a Postgres connection error leaks the dev DB password (and a
+  # hint about the prod secret structure). Disabled in dev; enabled only in
+  # :test (see config/test.exs) where it's a local debugging aid.
+  show_sensitive_data_on_connection_error: false,
   pool_size: 50,
   timeout: 5000,
   queue_target: 50,
@@ -15,7 +20,7 @@ config :temubelajar, TemuBelajar.Repo,
 
 config :temubelajar, TemuBelajarWeb.Endpoint,
   http: [
-    ip: {127, 0, 0, 1}, 
+    ip: {127, 0, 0, 1},
     port: 4000,
     thousand_island_options: [
       num_acceptors: 100

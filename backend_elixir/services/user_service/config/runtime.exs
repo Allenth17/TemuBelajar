@@ -1,5 +1,13 @@
 import Config
 
+if config_env() == :prod do
+  internal_secret =
+    System.get_env("INTERNAL_SECRET") ||
+      raise "INTERNAL_SECRET environment variable is missing — required for service-to-service auth"
+
+  config :user_service, internal_secret: internal_secret
+end
+
 # Database URL dari environment variable (override dev.exs)
 if database_url = System.get_env("DATABASE_URL") do
   config :user_service, UserService.Repo,
@@ -10,6 +18,10 @@ if database_url = System.get_env("DATABASE_URL") do
     queue_interval: 1000,
     ownership_timeout: 5000
 end
+
+config :user_service,
+  internal_secret:
+    System.get_env("INTERNAL_SECRET") || "dev_internal_secret_replace_in_production"
 
 # Phoenix endpoint configuration
 config :user_service, UserServiceWeb.Endpoint,

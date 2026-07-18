@@ -108,6 +108,7 @@ defmodule AuthService.AccountsTest do
     test "returns error for expired OTP", %{user: user} do
       # Set OTP created_at to 10 minutes ago
       expired_time = DateTime.add(DateTime.utc_now(), -600, :second) |> DateTime.truncate(:second)
+
       user
       |> Ecto.Changeset.change(%{otp_created_at: expired_time})
       |> Repo.update!()
@@ -191,8 +192,16 @@ defmodule AuthService.AccountsTest do
     test "logs out with valid token", %{token: token} do
       assert {:ok, :logged_out} = Accounts.logout(token)
 
+      # Phase 2.4 — logout now flags revoked_at instead of deleting the
+      # row, so the session remains as a server-side revocation list
+      # entry until expired_at passes AND cleanup reaps it. A subsequent
+      # lookup must refuse to resolve the token to a user.
       session = Repo.get_by(Accounts.Session, token: token)
-      assert session == nil
+      assert session
+      assert session.revoked_at
+
+      assert {:error, :revoked} = Accounts.get_user_by_token(token)
+      assert Accounts.get_email_by_token(token) == nil
     end
 
     test "returns error for invalid token" do
@@ -232,6 +241,7 @@ defmodule AuthService.AccountsTest do
       # Set session expired_at to past
       expired_time = DateTime.add(DateTime.utc_now(), -1, :day) |> DateTime.truncate(:second)
       session = Repo.get_by(Accounts.Session, token: token)
+
       session
       |> Ecto.Changeset.change(%{expired_at: expired_time})
       |> Repo.update!()

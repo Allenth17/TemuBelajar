@@ -31,7 +31,8 @@ defmodule MatchmakingService.MixProject do
       {:phoenix, "~> 1.7.21"},
       {:phoenix_pubsub, "~> 2.1"},
       {:jason, "~> 1.4"},
-      {:plug_cowboy, "~> 2.8"},
+      # Phase 8.13 — app is served by Bandit (see config/dev.exs adapter);
+      # `:plug_cowboy` was pulling in Cowboy + ranch with no caller.
       {:cors_plug, "~> 3.0"},
       {:bandit, "~> 1.10"},
       {:httpoison, "~> 2.1"},

@@ -1,6 +1,7 @@
 package com.hiralen.temubelajar.social.component
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.hiralen.temubelajar.social.data.SocialProfile
 import com.hiralen.temubelajar.social.data.SocialRepository
 import kotlinx.coroutines.*
@@ -48,17 +49,38 @@ class ProfileComponent(
 
     init {
         loadProfile()
+        // Phase 1.1 — wire destroy to Decompose lifecycle (was dead code).
+        lifecycle.doOnDestroy { scope.cancel() }
     }
 
     private fun loadProfile() {
         scope.launch {
             _state.value = _state.value.copy(isLoading = true, isOwnProfile = targetEmail == currentUserEmail)
 
+            // Phase 5.35 — ProfileComponent used to populate only the
+            // social-graph counts (follower / following / youFollow) and left
+            // every identity field in ProfileState blank. The screen thus
+            // rendered with the correct number of followers next to an empty
+            // "name" + empty university/major/bio for every profile view,
+            // including the user's own. Now we fetch the public profile from
+            // user_service's `/api/user/:email` (proxied via the gateway) and
+            // populate `name` / `username` / `university` / `major` / `bio` /
+            // `avatarUrl` from it. The data layer (`SocialRepository.getPublicProfile`)
+            // degrades to null on any failure; we guard each field with an
+            // elvis so a 404/ network blip still renders the email + social
+            // counts rather than crashing the screen.
+            val profile = socialRepository.getPublicProfile(targetEmail)
             // Load social data from social_service
             val social = socialRepository.getProfileSocial(targetEmail)
             val friends = socialRepository.getFriends(targetEmail)
 
             _state.value = _state.value.copy(
+                name = profile?.name ?: "",
+                username = profile?.username ?: "",
+                university = profile?.university ?: "",
+                major = profile?.major ?: "",
+                bio = profile?.bio ?: "",
+                avatarUrl = profile?.avatarUrl,
                 social = social,
                 friends = friends,
                 isLoading = false
@@ -99,6 +121,4 @@ class ProfileComponent(
         val social = socialRepository.getProfileSocial(targetEmail)
         _state.value = _state.value.copy(social = social)
     }
-
-    fun onDestroy() { scope.cancel() }
 }

@@ -3,6 +3,13 @@ defmodule ApiGatewayWeb.Router do
 
   pipeline :api do
     plug(:accepts, ["json"])
+    # Phase 3.20 — per-IP / per-route in-memory rate limit on the
+    # auth-issuing endpoints (login / verify-otp / register). 30 req/min
+    # each. Internal-only paths and health are not rate-limited by this
+    # plug (the configured `routes` allowlist is matched against the
+    # request's matched path). See `ApiGatewayWeb.Plugs.RateLimit` for
+    # the full semantics and the ETS-backed implementation.
+    plug(ApiGatewayWeb.Plugs.RateLimit)
   end
 
   scope "/api", ApiGatewayWeb do
@@ -30,10 +37,9 @@ defmodule ApiGatewayWeb.Router do
     put("/user/:email", GatewayController, :update_user)
 
     # ── Signaling routes → Signaling Service (port 4003) ────────────────────
-    post("/signaling/join", GatewayController, :signaling_join)
-    post("/signaling/offer", GatewayController, :signaling_offer)
-    post("/signaling/answer", GatewayController, :signaling_answer)
-    post("/signaling/ice", GatewayController, :signaling_ice)
+    # NOTE: signaling is WebSocket-only via SignalingProxyChannel. HTTP
+    # proxies previously returned 404 from signaling_service — removed
+    # rather than maintain dead routes (see 7.5).
 
     # ── Matchmaking routes → Matchmaking Service (port 4004) ────────────────
     post("/matchmaking/join", GatewayController, :matchmaking_join)

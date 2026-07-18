@@ -40,14 +40,22 @@ if [[ "${USE_DOCKER:-false}" == "true" ]]; then
   echo "  social_service→  http://localhost:4006"
   echo ""
   echo "Health checks:"
+  # Phase 8.4 — cap retries so a service that never becomes healthy
+  # doesn't hang the script forever. 30 tries × 2s = ~60s per port.
   for port in 4000 4001 4002 4003 4004 4005 4006; do
-    until curl -sf "http://localhost:$port/api/health" > /dev/null; do
+    dc_retries=30
+    until curl -sf "http://localhost:$port/api/health" > /dev/null 2>&1; do
+      dc_retries=$((dc_retries - 1))
+      if [[ $dc_retries -le 0 ]]; then
+        echo "  ✗ port $port not healthy after 60s — aborting"
+        exit 1
+      fi
       sleep 2
     done
     echo "  ✓ port $port healthy"
   done
   exit 0
-fi
+  fi
 
 # ── 3. Helper: wait for a service health endpoint ────────────────────────────────
 wait_for_service() {
@@ -85,9 +93,12 @@ start_service() {
     if [[ ! -d deps ]]; then
       MIX_ENV=dev mix deps.get --only dev
     fi
-    # Create + migrate DB (no-ops for services without Ecto)
-    MIX_ENV=dev mix ecto.create --quiet 2>/dev/null || true
-    MIX_ENV=dev mix ecto.migrate --quiet 2>/dev/null || true
+    # Phase 8.3 — do NOT silence ecto.create / migrate errors. A broken
+    # schema must surface as a clear non-zero exit here, not as a silent
+    # 500 at request time. Services without Ecto report the task as
+    # unknown and we let that propagate too (it's still a real signal).
+    MIX_ENV=dev mix ecto.create --quiet
+    MIX_ENV=dev mix ecto.migrate --quiet
     # Start the Phoenix server — PORT env var overrides dev.exs port
     MIX_ENV=dev PORT="$PORT" mix phx.server
   ) &
@@ -123,8 +134,15 @@ start_service "email_service"   "4005"
 start_service "user_service"    "4002"
 start_service "social_service"  "4006"
 
-# Wait for auth service before starting services that depend on it
-wait_for_service "auth_service" "4001"
+# Phase 8.5 — wait for ALL tier-1 services before starting the gateway.
+# Previously only auth_service was awaited, so a failed user_service or
+# social_service let the gateway come up healthy yet proxy to dead ports
+# (503s in production). email_service has no /api/health dependency for
+# the others but is awaited so the monolith sees a fully working stack.
+wait_for_service "auth_service"   "4001"
+wait_for_service "email_service"  "4005"
+wait_for_service "user_service"    "4002"
+wait_for_service "social_service" "4006"
 
 # Tier 2: services that depend on auth_service
 start_service "matchmaking_service" "4004"

@@ -1,7 +1,6 @@
 package com.hiralen.temubelajar.app
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.hiralen.temubelajar.auth.component.AuthComponent
@@ -15,8 +14,16 @@ import kotlinx.serialization.Serializable
 
 /**
  * RootComponent — top-level Decompose component.
- * Mengelola navigasi antara Auth flow dan Main flow.
+ *
+ * Drives navigation between the Auth flow and the Main flow, then the leaf
+ * screens (video chat, profile, followers, friends, friend requests).
+ *
+ * `@OptIn(DelicateDecomposeApi::class)` is class-level because every
+ * `navigation.push(Config.*)` call touches the `StackNavigation` API surface
+ * that Decompose marks as delicate (we intentionally rely on push across
+ * the navigation coroutine for in-call routing).
  */
+@OptIn(com.arkivanov.decompose.DelicateDecomposeApi::class)
 class RootComponent(
     componentContext: ComponentContext,
     private val currentUserEmail: String = "", // Placeholder if needed globally, but we can pass it
@@ -25,6 +32,17 @@ class RootComponent(
 
     private val tokenStorage = com.hiralen.temubelajar.core.data.TokenStorage()
     private val navigation = StackNavigation<Config>()
+
+    // Phase 5.6 — keep a weak/strong reference to the live HomeComponent so
+    // `VideoChatComponent.onNext` can not just `navigation.pop()` back to
+    // Home (which leaves the user staring at the "Mulai mencari" CTA, having
+    // to tap it after every Next) but ALSO immediately kick off a fresh
+    // matching run on the existing HomeComponent instance. We bypass
+    // re-creating Home (which would re-fetch `/api/me`, re-acquire the WS,
+    // and reset the loaded user info) by holding the reference here.
+    // Set every time childFactory creates the Main child; null when Main
+    // is replaced with Auth (navigateToAuth → replaceAll → Main destroyed).
+    private var homeComponentRef: HomeComponent? = null
 
     val stack: Value<ChildStack<Config, Child>> = childStack(
         source = navigation,
@@ -49,7 +67,7 @@ class RootComponent(
                         navigateToVideoChat(pairId, role, peerEmail, peerUni)
                     },
                     onLogout = { navigateToAuth() }
-                )
+                ).also { homeComponentRef = it }
             )
             is Config.VideoChat -> Child.VideoChat(
                 VideoChatComponent(
@@ -60,8 +78,18 @@ class RootComponent(
                     peerUniversity = config.peerUniversity,
                     onBack = { navigation.pop() },
                     onNext = {
-                        // Kembali ke Home dan langsung mulai cari lagi
+                        // Phase 5.6 — was: bare `navigation.pop()` left the
+                        // user on Home staring at the "Mulai mencari" CTA.
+                        // Now: pop back to Home AND immediately fire
+                        // `startMatching()` on the same HomeComponent so
+                        // the user slides directly into the next queue
+                        // instead of being prompted to tap again. OmeTV-spec
+                        // UX matches the swipe-to-next affordance users
+                        // expect from random-video-chat apps. Pop happens
+                        // first so the VideoChat's WS scopes cancel before
+                        // Home re-opens the matchmaking channel.
                         navigation.pop()
+                        homeComponentRef?.startMatching()
                     },
                     onViewProfile = { email -> navigateToProfile(email) }
                 )
@@ -109,10 +137,10 @@ class RootComponent(
     }
 
     fun navigateToAuth() {
+        homeComponentRef = null
         navigation.replaceAll(Config.Auth)
     }
 
-    @OptIn(DelicateDecomposeApi::class)
     fun navigateToVideoChat(pairId: String, role: String, peerEmail: String, peerUniversity: String) {
         navigation.push(Config.VideoChat(pairId, role, peerEmail, peerUniversity))
     }

@@ -35,7 +35,8 @@ defmodule MatchmakingService.MatchmakingServerTest do
 
   describe "join_queue/3 – single user" do
     test "first user gets :queued with position 1" do
-      assert {:queued, 1} = MatchmakingServer.join_queue("alice@ui.ac.id", "UI", "teknik_informatika")
+      assert {:queued, 1} =
+               MatchmakingServer.join_queue("alice@ui.ac.id", "UI", "teknik_informatika")
     end
 
     test "second user from different university is matched immediately" do
@@ -129,14 +130,26 @@ defmodule MatchmakingService.MatchmakingServerTest do
 
       cross_uni_score =
         MatchmakingServer.score_match(
-          "a@ui.ac.id",  "UI",  nil, now,
-          "b@itb.ac.id", "ITB", nil, now
+          "a@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          nil,
+          now
         )
 
       same_uni_score =
         MatchmakingServer.score_match(
-          "a@ui.ac.id",  "UI",  nil, now,
-          "b2@ui.ac.id", "UI",  nil, now
+          "a@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "b2@ui.ac.id",
+          "UI",
+          nil,
+          now
         )
 
       assert cross_uni_score > same_uni_score
@@ -147,46 +160,78 @@ defmodule MatchmakingService.MatchmakingServerTest do
 
       score =
         MatchmakingServer.score_match(
-          "a@ui.ac.id",  "UI",  nil, now,
-          "b@itb.ac.id", "ITB", nil, now
+          "a@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          nil,
+          now
         )
 
       assert score >= 0.0 and score <= 1.0
     end
 
     test "longer wait time produces a higher score (all else equal)" do
-      now  = System.monotonic_time(:millisecond)
-      old  = now - 30_000  # 30 seconds ago
+      now = System.monotonic_time(:millisecond)
+      # 30 seconds ago
+      old = now - 30_000
 
       score_fresh =
         MatchmakingServer.score_match(
-          "a@ui.ac.id",  "UI",  nil, now,
-          "b@itb.ac.id", "ITB", nil, now
+          "a@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          nil,
+          now
         )
 
       score_waited =
         MatchmakingServer.score_match(
-          "a@ui.ac.id",  "UI",  nil, now,
-          "b@itb.ac.id", "ITB", nil, old
+          "a@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          nil,
+          old
         )
 
       assert score_waited > score_fresh
     end
 
     test "wait time score is capped at 1.0 (no score above max after 60+ seconds)" do
-      now       = System.monotonic_time(:millisecond)
-      very_long = now - 120_000   # 2 minutes – should be capped at 1.0
+      now = System.monotonic_time(:millisecond)
+      # 2 minutes – should be capped at 1.0
+      very_long = now - 120_000
 
       score_60s =
         MatchmakingServer.score_match(
-          "a@ui.ac.id", "UI", nil, now,
-          "b@itb.ac.id", "ITB", nil, now - 60_000
+          "a@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          nil,
+          now - 60_000
         )
 
       score_120s =
         MatchmakingServer.score_match(
-          "a@ui.ac.id", "UI", nil, now,
-          "b@itb.ac.id", "ITB", nil, very_long
+          "a@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          nil,
+          very_long
         )
 
       # Both should have the same wait contribution because it's capped
@@ -202,14 +247,26 @@ defmodule MatchmakingService.MatchmakingServerTest do
 
       score_after_match =
         MatchmakingServer.score_match(
-          "a@ui.ac.id",  "UI",  nil, now,
-          "b@itb.ac.id", "ITB", nil, now
+          "a@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          nil,
+          now
         )
 
       score_fresh_pair =
         MatchmakingServer.score_match(
-          "a@ui.ac.id",  "UI",  nil, now,
-          "c@ugm.ac.id", "UGM", nil, now
+          "a@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "c@ugm.ac.id",
+          "UGM",
+          nil,
+          now
         )
 
       # The freshness penalty should make the recently-matched pair score lower
@@ -221,8 +278,14 @@ defmodule MatchmakingService.MatchmakingServerTest do
 
       score_nil_uni =
         MatchmakingServer.score_match(
-          "a@ui.ac.id", nil, nil, now,
-          "b@itb.ac.id", "ITB", nil, now
+          "a@ui.ac.id",
+          nil,
+          nil,
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          nil,
+          now
         )
 
       # 0.35 * 0.5 (neutral) + 0.35 * 0.0 (no wait) + 0.15 * 1.0 (fresh) + 0.15 * 0.5 (nil major) = 0.40
@@ -238,14 +301,26 @@ defmodule MatchmakingService.MatchmakingServerTest do
 
       same_family =
         MatchmakingServer.score_match(
-          "a@ui.ac.id", "UI", "informatika", now,
-          "b@itb.ac.id", "ITB", "teknik_elektro", now
+          "a@ui.ac.id",
+          "UI",
+          "informatika",
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          "teknik_elektro",
+          now
         )
 
       diff_family =
         MatchmakingServer.score_match(
-          "a@ui.ac.id", "UI", "informatika", now,
-          "b@itb.ac.id", "ITB", "ekonomi", now
+          "a@ui.ac.id",
+          "UI",
+          "informatika",
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          "ekonomi",
+          now
         )
 
       assert same_family > diff_family
@@ -256,14 +331,26 @@ defmodule MatchmakingService.MatchmakingServerTest do
 
       score_nil =
         MatchmakingServer.score_match(
-          "a@ui.ac.id", "UI", nil, now,
-          "b@itb.ac.id", "ITB", nil, now
+          "a@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          nil,
+          now
         )
 
       score_known =
         MatchmakingServer.score_match(
-          "a@ui.ac.id", "UI", "informatika", now,
-          "b@itb.ac.id", "ITB", "ekonomi", now
+          "a@ui.ac.id",
+          "UI",
+          "informatika",
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          "ekonomi",
+          now
         )
 
       # nil-major is neutral (0.5 * 0.15 = 0.075 contribution)
@@ -276,8 +363,14 @@ defmodule MatchmakingService.MatchmakingServerTest do
 
       score =
         MatchmakingServer.score_match(
-          "a@ui.ac.id", "UI", "ekonomi", now,
-          "b@itb.ac.id", "ITB", "hukum", now
+          "a@ui.ac.id",
+          "UI",
+          "ekonomi",
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          "hukum",
+          now
         )
 
       # Same family: 0.35*1.0 + 0.35*0 + 0.15*1.0 + 0.15*0.8 = 0.35 + 0 + 0.15 + 0.12 = 0.62
@@ -288,7 +381,18 @@ defmodule MatchmakingService.MatchmakingServerTest do
       now = System.monotonic_time(:millisecond)
 
       score_6 = MatchmakingServer.score_match("a@ui.ac.id", "UI", now, "b@itb.ac.id", "ITB", now)
-      score_8 = MatchmakingServer.score_match("a@ui.ac.id", "UI", nil, now, "b@itb.ac.id", "ITB", nil, now)
+
+      score_8 =
+        MatchmakingServer.score_match(
+          "a@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "b@itb.ac.id",
+          "ITB",
+          nil,
+          now
+        )
 
       assert_in_delta score_6, score_8, 0.001
     end
@@ -299,12 +403,11 @@ defmodule MatchmakingService.MatchmakingServerTest do
   describe "cross-university preference in actual matching" do
     test "when both same-uni and cross-uni candidates exist, cross-uni is chosen" do
       # Two users waiting in queue
-      MatchmakingServer.join_queue("same@ui.ac.id",  "UI", nil)
+      MatchmakingServer.join_queue("same@ui.ac.id", "UI", nil)
       MatchmakingServer.join_queue("cross@itb.ac.id", "ITB", nil)
 
       # New user from UI joins — should be matched with the cross-uni candidate
-      {:matched, _pair_id, matched_peer} =
-        MatchmakingServer.join_queue("new@ui.ac.id", "UI", nil)
+      {:matched, _pair_id, matched_peer} = MatchmakingServer.join_queue("new@ui.ac.id", "UI", nil)
 
       assert matched_peer == "cross@itb.ac.id"
     end
@@ -312,8 +415,7 @@ defmodule MatchmakingService.MatchmakingServerTest do
     test "when only same-uni candidate exists, still matches (fairness)" do
       MatchmakingServer.join_queue("peer@ui.ac.id", "UI", nil)
 
-      {:matched, _pair_id, matched_peer} =
-        MatchmakingServer.join_queue("new@ui.ac.id", "UI", nil)
+      {:matched, _pair_id, matched_peer} = MatchmakingServer.join_queue("new@ui.ac.id", "UI", nil)
 
       assert matched_peer == "peer@ui.ac.id"
     end
@@ -329,21 +431,36 @@ defmodule MatchmakingService.MatchmakingServerTest do
       :ets.insert(:matchmaking_queue, {"long_wait@ui.ac.id", "UI", nil, long_wait_ts})
 
       # A fresh cross-uni candidate just joined.
-      :ets.insert(:matchmaking_queue, {"fresh@itb.ac.id", "ITB", nil, System.monotonic_time(:millisecond)})
+      :ets.insert(
+        :matchmaking_queue,
+        {"fresh@itb.ac.id", "ITB", nil, System.monotonic_time(:millisecond)}
+      )
 
       # Score both from the perspective of a new UI user
       now = System.monotonic_time(:millisecond)
 
       score_long =
         MatchmakingServer.score_match(
-          "new@ui.ac.id", "UI", nil, now,
-          "long_wait@ui.ac.id", "UI", nil, long_wait_ts
+          "new@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "long_wait@ui.ac.id",
+          "UI",
+          nil,
+          long_wait_ts
         )
 
       score_fresh =
         MatchmakingServer.score_match(
-          "new@ui.ac.id", "UI", nil, now,
-          "fresh@itb.ac.id", "ITB", nil, now
+          "new@ui.ac.id",
+          "UI",
+          nil,
+          now,
+          "fresh@itb.ac.id",
+          "ITB",
+          nil,
+          now
         )
 
       # At 55s wait, the wait contribution overcomes the uni_score gap:
@@ -362,7 +479,10 @@ defmodule MatchmakingService.MatchmakingServerTest do
       :ets.insert(:matchmaking_queue, {"expired@ui.ac.id", "UI", nil, expired_ts})
 
       # Also insert a fresh user
-      :ets.insert(:matchmaking_queue, {"fresh@ui.ac.id", "UI", nil, System.monotonic_time(:millisecond)})
+      :ets.insert(
+        :matchmaking_queue,
+        {"fresh@ui.ac.id", "UI", nil, System.monotonic_time(:millisecond)}
+      )
 
       assert MatchmakingServer.queue_size() == 2
 
@@ -397,7 +517,8 @@ defmodule MatchmakingService.MatchmakingServerTest do
   describe "recent match TTL cleanup" do
     test "stale recent-match records are purged during heartbeat" do
       # Insert a recent-match record with a timestamp older than 5 minutes
-      stale_ts = past_ms(360_000)  # 6 minutes ago
+      # 6 minutes ago
+      stale_ts = past_ms(360_000)
       :ets.insert(:recent_matches, {"old_key::match", stale_ts})
 
       # Insert a fresh recent-match record
@@ -423,6 +544,57 @@ defmodule MatchmakingService.MatchmakingServerTest do
       MatchmakingServer.join_queue("u2@ui.ac.id", "UI", nil)
       MatchmakingServer.join_queue("u3@ugm.ac.id", "UGM", nil)
       assert MatchmakingServer.queue_size() == 3
+    end
+  end
+
+  # ── Phase 5.31 / 5.40 — block list enforced in matchmaking ────────────────
+
+  describe "block-list exclusion (Phase 5.31 / 5.40)" do
+    @blocked_table :matchmaking_blocked_sets
+
+    # Inject a fresh blocked-set cache entry straight into the ETS table
+    # so tests don't need a running social_service. expiry is far in the
+    # future so the cache lookup returns this set instead of invoking the
+    # (no-backend-configured) HTTP path.
+    defp seed_blocked_cache(email, blocked_emails) do
+      expiry = System.monotonic_time(:millisecond) + 60_000
+      :ets.insert(@blocked_table, {email, MapSet.new(blocked_emails), expiry})
+    end
+
+    test "a peer in the caller's block list is never matched" do
+      # The blocked peer is the only one waiting — match should not pick
+      # them; new@ui.ac.id should stay queued instead.
+      MatchmakingServer.join_queue("blocked@itb.ac.id", "ITB", nil)
+
+      seed_blocked_cache("new@ui.ac.id", ["blocked@itb.ac.id"])
+
+      assert {:queued, _pos} = MatchmakingServer.join_queue("new@ui.ac.id", "UI", nil)
+    end
+
+    test "if the only candidate is blocked, caller waits instead of pairing" do
+      MatchmakingServer.join_queue("a@itb.ac.id", "ITB", nil)
+      MatchmakingServer.join_queue("b@ugm.ac.id", "UGM", nil)
+
+      # Wait, then ensure a subsequent caller blocked against `a` falls
+      # back to `b`, not `a`, even if `a` is the cross-uni candidate.
+      # new@c uses UI; a@ is ITB (cross-uni, preferred), b@ is UGM (also
+      # cross-uni). Both score equally on uni_score; either could win
+      # the Enum.max_by tie. So we instead make `a` the *only* candidate
+      # to assert exclusion yields a non-match.
+      MatchmakingServer.leave_queue("b@ugm.ac.id")
+
+      seed_blocked_cache("newer@ui.ac.id", ["a@itb.ac.id"])
+
+      assert {:queued, _} = MatchmakingServer.join_queue("newer@ui.ac.id", "UI", nil)
+    end
+
+    test "a peer NOT in the caller's block list still matches normally" do
+      MatchmakingServer.join_queue("ok_peer@itb.ac.id", "ITB", nil)
+
+      seed_blocked_cache("new@ui.ac.id", ["someone_else@ui.ac.id"])
+
+      assert {:matched, _pair_id, "ok_peer@itb.ac.id", _peer_university} =
+               MatchmakingServer.join_queue("new@ui.ac.id", "UI", nil)
     end
   end
 end

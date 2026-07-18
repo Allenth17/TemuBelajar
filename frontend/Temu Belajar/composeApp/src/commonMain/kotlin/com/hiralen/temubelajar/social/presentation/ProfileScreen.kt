@@ -10,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -25,18 +24,13 @@ import compose.icons.tablericons.*
 fun ProfileScreen(component: ProfileComponent) {
     val state by component.state.collectAsState()
 
-    // Report dialog state
     var showReportDialog by remember { mutableStateOf(false) }
     var showBlockConfirm by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(TBColors.DarkBg)
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(LinearColors.Canvas)) {
         if (state.isLoading) {
             CircularProgressIndicator(
-                color = TBColors.Primary,
+                color = LinearColors.Primary,
                 modifier = Modifier.align(Alignment.Center)
             )
         } else {
@@ -45,51 +39,26 @@ fun ProfileScreen(component: ProfileComponent) {
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
-                // ── Header / Cover gradient ──────────────────────────────────
+                // Banner — surface-3 fill, hairline at top of body
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(TBColors.Primary.copy(alpha = 0.7f), TBColors.DarkBg)
-                            )
-                        )
+                        .height(128.dp)
+                        .background(LinearColors.Surface3)
                 ) {
-                    // Back button
                     IconButton(
                         onClick = { component.onBack() },
                         modifier = Modifier.align(Alignment.TopStart).padding(8.dp).statusBarsPadding()
                     ) {
-                        Icon(TablerIcons.ArrowLeft, contentDescription = "Kembali", tint = Color.White)
+                        Icon(TablerIcons.ArrowLeft, contentDescription = "Back", tint = LinearColors.Ink)
                     }
 
-                    // Avatar
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .align(Alignment.BottomStart)
-                            .offset(x = 24.dp, y = 40.dp)
-                            .clip(CircleShape)
-                            .background(TBColors.Primary)
-                            .border(3.dp, TBColors.DarkBg, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = state.name.take(1).uppercase().ifBlank { state.email.take(1).uppercase() },
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    // Action button (own profile = edit, other = follow)
                     if (!state.isOwnProfile) {
                         Row(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
-                                .padding(end = 16.dp, bottom = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                .padding(end = TBSpace.MD, bottom = TBSpace.XS),
+                            horizontalArrangement = Arrangement.spacedBy(TBSpace.XS)
                         ) {
                             val youFollow = state.social?.youFollow == true
                             OutlinedButton(
@@ -98,46 +67,51 @@ fun ProfileScreen(component: ProfileComponent) {
                                         if (youFollow) ProfileAction.Unfollow else ProfileAction.Follow
                                     )
                                 },
-                                border = BorderStroke(1.5.dp, TBColors.Primary),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, LinearColors.Primary),
+                                shape = TBShapes.MD,
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = if (youFollow) Color.White else TBColors.Primary
+                                    containerColor = if (youFollow) LinearColors.PrimaryFocus else LinearColors.Surface3,
+                                    contentColor = if (youFollow) LinearColors.InverseCanvas else LinearColors.PrimaryHover
                                 ),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                             ) {
                                 Icon(
                                     if (youFollow) TablerIcons.UserCheck else TablerIcons.UserPlus,
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(Modifier.width(4.dp))
-                                Text(if (youFollow) "Mengikuti" else "Ikuti", fontSize = 13.sp)
+                                Spacer(Modifier.width(6.dp))
+                                Text(if (youFollow) "Following" else "Follow", style = TBTypography.Button)
                             }
 
-                            // More actions
                             var expanded by remember { mutableStateOf(false) }
                             Box {
                                 IconButton(onClick = { expanded = true }) {
-                                    Icon(TablerIcons.DotsVertical, contentDescription = "More", tint = Color.White)
+                                    Icon(TablerIcons.DotsVertical, contentDescription = "More", tint = LinearColors.Ink)
                                 }
-                                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false },
+                                    containerColor = LinearColors.Surface2
+                                ) {
                                     DropdownMenuItem(
                                         onClick = {
                                             expanded = false
                                             component.performAction(ProfileAction.SendFriendRequest)
                                         },
-                                        text = { Text("Tambah teman") },
-                                        leadingIcon = { Icon(TablerIcons.Users, null, modifier = Modifier.size(16.dp)) }
+                                        text = { Text("Add friend", color = LinearColors.Ink) },
+                                        leadingIcon = { Icon(TablerIcons.Users, null, Modifier.size(16.dp), tint = LinearColors.Ink) }
                                     )
-                                    HorizontalDivider()
+                                    HorizontalDivider(color = LinearColors.Hairline)
                                     DropdownMenuItem(
                                         onClick = { expanded = false; showBlockConfirm = true },
-                                        text = { Text("Blokir", color = MaterialTheme.colorScheme.error) },
-                                        leadingIcon = { Icon(TablerIcons.Ban, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp)) }
+                                        text = { Text("Blok", color = LinearColors.Error) },
+                                        leadingIcon = { Icon(TablerIcons.Ban, contentDescription = null, tint = LinearColors.Error, modifier = Modifier.size(16.dp)) }
                                     )
                                     DropdownMenuItem(
                                         onClick = { expanded = false; showReportDialog = true },
-                                        text = { Text("Laporkan", color = MaterialTheme.colorScheme.error) },
-                                        leadingIcon = { Icon(TablerIcons.Flag, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp)) }
+                                        text = { Text("Lapor", color = LinearColors.Error) },
+                                        leadingIcon = { Icon(TablerIcons.Flag, contentDescription = null, tint = LinearColors.Error, modifier = Modifier.size(16.dp)) }
                                     )
                                 }
                             }
@@ -145,120 +119,106 @@ fun ProfileScreen(component: ProfileComponent) {
                     }
                 }
 
-                Spacer(Modifier.height(48.dp))
+                // Avatar overlapping banner/body
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .offset(x = TBSpace.LG, y = (-40).dp)
+                        .clip(CircleShape)
+                        .background(LinearColors.Primary)
+                        .border(3.dp, LinearColors.Canvas, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = state.name.take(1).uppercase().ifBlank { state.email.take(1).uppercase() },
+                        style = TBTypography.Headline.copy(fontWeight = FontWeight.SemiBold),
+                        color = LinearColors.InverseCanvas
+                    )
+                }
 
-                // ── Name + username ──────────────────────────────────────────
-                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Spacer(Modifier.height(TBSpace.MD))
+
+                Column(modifier = Modifier.padding(horizontal = TBSpace.LG)) {
                     Text(
                         text = state.name.ifBlank { state.email.substringBefore("@") },
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
-                        color = Color.White
+                        style = TBTypography.Headline.copy(fontWeight = FontWeight.SemiBold),
+                        color = LinearColors.Ink
                     )
                     if (state.username.isNotBlank()) {
                         Text(
                             "@${state.username}",
-                            color = TBColors.Secondary,
-                            fontSize = 14.sp
+                            style = TBTypography.BodySM,
+                            color = LinearColors.InkSubtle
                         )
                     }
 
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(TBSpace.SM))
 
-                    // Bio
                     if (state.bio.isNotBlank()) {
-                        Text(state.bio, color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
-                        Spacer(Modifier.height(8.dp))
+                        Text(state.bio, color = LinearColors.InkMuted, style = TBTypography.Body)
+                        Spacer(Modifier.height(TBSpace.SM))
                     }
 
-                    // University + Major chips
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (state.university.isNotBlank()) {
-                            SocialChip(TablerIcons.School, state.university)
-                        }
-                        if (state.major.isNotBlank()) {
-                            SocialChip(TablerIcons.Book, state.major)
-                        }
+                    Row(horizontalArrangement = Arrangement.spacedBy(TBSpace.XS)) {
+                        if (state.university.isNotBlank()) SocialChip(TablerIcons.School, state.university)
+                        if (state.major.isNotBlank()) SocialChip(TablerIcons.Book, state.major)
                     }
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(TBSpace.MD))
 
-                    // ── Follower count row ───────────────────────────────────
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(24.dp)
-                    ) {
-                        CountColumn(
-                            count = state.social?.followerCount ?: 0,
-                            label = "Pengikut",
-                            onClick = { component.onViewFollowers(state.email) }
-                        )
-                        CountColumn(
-                            count = state.social?.followingCount ?: 0,
-                            label = "Mengikuti",
-                            onClick = { component.onViewFollowing(state.email) }
-                        )
-                        CountColumn(
-                            count = state.friends.size,
-                            label = "Teman",
-                            onClick = { component.onViewFriends(state.email) }
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(TBSpace.XL)) {
+                        CountColumn(state.social?.followerCount ?: 0, "Followers") { component.onViewFollowers(state.email) }
+                        CountColumn(state.social?.followingCount ?: 0, "Following") { component.onViewFollowing(state.email) }
+                        CountColumn(state.friends.size, "Friends") { component.onViewFriends(state.email) }
                     }
 
-                    // ── "Difollow oleh …" preview ────────────────────────────
                     val preview = state.social?.followedByPreview ?: emptyList()
                     if (preview.isNotEmpty()) {
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(TBSpace.SM))
                         val previewText = buildString {
-                            append("Diikuti oleh ")
+                            append("Followed by ")
                             preview.forEachIndexed { i, email ->
-                                append("**${email.substringBefore("@")}**")
+                                append(email.substringBefore("@"))
                                 if (i < preview.lastIndex) append(", ")
                             }
                             val remaining = (state.social?.followerCount ?: 0) - preview.size
-                            if (remaining > 0) append(", dan $remaining lainnya")
+                            if (remaining > 0) append(" and $remaining more")
                         }
-                        Text(
-                            text = previewText,
-                            color = Color.White.copy(alpha = 0.6f),
-                            fontSize = 13.sp
-                        )
+                        Text(previewText, color = LinearColors.InkTertiary, style = TBTypography.BodySM)
                     }
 
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(TBSpace.LG))
 
-                    // ── Friends preview ───────────────────────────────────────
                     if (state.friends.isNotEmpty()) {
-                        Text("Teman", fontWeight = FontWeight.SemiBold, color = Color.White, fontSize = 16.sp)
-                        Spacer(Modifier.height(8.dp))
+                        Text("Friends", style = TBTypography.Subhead.copy(fontWeight = FontWeight.SemiBold), color = LinearColors.Ink)
+                        Spacer(Modifier.height(TBSpace.SM))
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(TBSpace.XS),
                             modifier = Modifier.horizontalScroll(rememberScrollState())
                         ) {
-                            state.friends.take(10).forEach { friendEmail ->
-                                FriendAvatar(email = friendEmail)
-                            }
+                            state.friends.take(10).forEach { friendEmail -> FriendAvatar(email = friendEmail) }
                             if (state.friends.size > 10) {
                                 Box(
                                     modifier = Modifier
                                         .size(56.dp)
                                         .clip(CircleShape)
-                                        .background(TBColors.Primary.copy(alpha = 0.3f))
+                                        .background(LinearColors.Surface2)
+                                        .border(1.dp, LinearColors.Hairline, CircleShape)
                                         .clickable { component.onViewFriends(state.email) },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("+${state.friends.size - 10}", color = Color.White, fontSize = 13.sp)
+                                    Text("+${state.friends.size - 10}", color = LinearColors.Ink, style = TBTypography.BodySM)
                                 }
                             }
                         }
                     }
 
-                    Spacer(Modifier.height(40.dp))
+                    Spacer(Modifier.height(TBSpace.XXL))
                 }
             }
         }
     }
 
-    // ── Report dialog ─────────────────────────────────────────────────────────
     if (showReportDialog) {
         ReportDialog(
             onDismiss = { showReportDialog = false },
@@ -269,26 +229,25 @@ fun ProfileScreen(component: ProfileComponent) {
         )
     }
 
-    // ── Block confirm dialog ──────────────────────────────────────────────────
     if (showBlockConfirm) {
         AlertDialog(
             onDismissRequest = { showBlockConfirm = false },
-            title = { Text("Blokir pengguna?") },
-            text = { Text("Kamu tidak akan bisa bertemu ${state.name.ifBlank { "pengguna ini" }} lagi di video chat.") },
+            containerColor = LinearColors.Surface2,
+            titleContentColor = LinearColors.Ink,
+            title = { Text("Block user?") },
+            text = { Text("You won't meet ${state.name.ifBlank { "this user" }} in video chat again.", color = LinearColors.InkMuted) },
             confirmButton = {
                 TextButton(onClick = {
                     component.performAction(ProfileAction.Block())
                     showBlockConfirm = false
-                }) { Text("Blokir", color = MaterialTheme.colorScheme.error) }
+                }) { Text("Blok", color = LinearColors.Error) }
             },
             dismissButton = {
-                TextButton(onClick = { showBlockConfirm = false }) { Text("Batal") }
+                TextButton(onClick = { showBlockConfirm = false }) { Text("Batal", color = LinearColors.InkSubtle) }
             }
         )
     }
 }
-
-// ─── Helper composables ───────────────────────────────────────────────────────
 
 @Composable
 private fun SocialChip(
@@ -297,14 +256,15 @@ private fun SocialChip(
 ) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(TBColors.Primary.copy(alpha = 0.15f))
+            .clip(TBShapes.Pill)
+            .background(LinearColors.Surface1)
+            .border(1.dp, LinearColors.Hairline, TBShapes.Pill)
             .padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Icon(icon, contentDescription = null, tint = TBColors.Primary, modifier = Modifier.size(14.dp))
-        Text(text, color = TBColors.Primary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Icon(icon, contentDescription = null, tint = LinearColors.InkSubtle, modifier = Modifier.size(14.dp))
+        Text(text, color = LinearColors.Ink, style = TBTypography.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -312,15 +272,14 @@ private fun SocialChip(
 private fun CountColumn(count: Int, label: String, onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onClick() }
+        modifier = Modifier.clickableRole { onClick() }
     ) {
         Text(
             text = if (count >= 1000) "${count / 1000}k" else count.toString(),
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
-            color = Color.White
+            style = TBTypography.Subhead.copy(fontWeight = FontWeight.SemiBold),
+            color = LinearColors.Ink
         )
-        Text(label, color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+        Text(label, color = LinearColors.InkSubtle, style = TBTypography.Caption)
     }
 }
 
@@ -334,21 +293,21 @@ private fun FriendAvatar(email: String) {
             modifier = Modifier
                 .size(52.dp)
                 .clip(CircleShape)
-                .background(TBColors.Secondary.copy(alpha = 0.7f)),
+                .background(LinearColors.Surface2)
+                .border(1.dp, LinearColors.Hairline, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 email.take(1).uppercase(),
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                color = LinearColors.Ink,
+                style = TBTypography.BodyLG.copy(fontWeight = FontWeight.SemiBold)
             )
         }
         Spacer(Modifier.height(4.dp))
         Text(
             email.substringBefore("@"),
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = 11.sp,
+            color = LinearColors.InkSubtle,
+            style = TBTypography.Caption,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
@@ -362,39 +321,58 @@ private fun ReportDialog(
     onSubmit: (reason: String, detail: String?) -> Unit
 ) {
     val reasons = listOf("spam", "harassment", "inappropriate_content", "impersonation", "other")
-    val reasonLabels = listOf("Spam", "Pelecehan", "Konten tidak pantas", "Peniruan identitas", "Lainnya")
+    val reasonLabels = listOf("Spam", "Harassment", "Inappropriate content", "Impersonation", "Other")
     var selectedReason by remember { mutableStateOf(reasons[0]) }
     var detail by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Laporkan pengguna") },
+        containerColor = LinearColors.Surface2,
+        titleContentColor = LinearColors.Ink,
+        title = { Text("Report user") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(TBSpace.XS)) {
                 reasons.forEachIndexed { i, r ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { selectedReason = r }
+                        modifier = Modifier.clickableRole { selectedReason = r }
                     ) {
-                        RadioButton(selected = selectedReason == r, onClick = { selectedReason = r })
-                        Spacer(Modifier.width(8.dp))
-                        Text(reasonLabels[i])
+                        RadioButton(
+                            selected = selectedReason == r,
+                            onClick = { selectedReason = r },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = LinearColors.Primary,
+                                unselectedColor = LinearColors.InkSubtle
+                            )
+                        )
+                        Spacer(Modifier.width(TBSpace.XS))
+                        Text(reasonLabels[i], color = LinearColors.Ink, style = TBTypography.BodySM)
                     }
                 }
                 OutlinedTextField(
                     value = detail,
                     onValueChange = { detail = it },
-                    label = { Text("Detail (opsional)") },
+                    label = { Text("Detail (optional)", color = LinearColors.InkSubtle) },
                     modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
+                    maxLines = 3,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = LinearColors.PrimaryFocus,
+                        unfocusedBorderColor = LinearColors.Hairline,
+                        focusedContainerColor = LinearColors.Surface1,
+                        unfocusedContainerColor = LinearColors.Surface1,
+                        focusedTextColor = LinearColors.Ink,
+                        unfocusedTextColor = LinearColors.Ink,
+                        cursorColor = LinearColors.Primary
+                    ),
+                    shape = TBShapes.MD
                 )
             }
         },
         confirmButton = {
             TextButton(onClick = { onSubmit(selectedReason, detail.ifBlank { null }) }) {
-                Text("Kirim laporan", color = MaterialTheme.colorScheme.error)
+                Text("Kirim laporan", color = LinearColors.Error)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal", color = LinearColors.InkSubtle) } }
     )
 }

@@ -2,14 +2,11 @@ package com.hiralen.temubelajar.auth.presentation.login
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
@@ -24,87 +21,80 @@ import compose.icons.tablericons.*
 fun LoginScreen(component: LoginComponent) {
     val state by component.state.collectAsState()
     var passwordVisible by remember { mutableStateOf(false) }
-    val isDark = isSystemInDarkTheme()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isDark) TBColors.BackgroundDark else Color(0xFFFCF9F7))
+            .background(LinearColors.Canvas)
     ) {
-        // Orange Wave Background (Bottom)
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(180.dp)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            TBColors.Primary.copy(alpha = 0.1f),
-                            TBColors.Primary.copy(alpha = 0.4f)
-                        )
-                    )
-                )
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                // Phase 5.26 — IME inset so the on-screen keyboard never
+                // covers the password field on small phones, and status bar
+                // inset so the layout does not draw under the system status
+                // bar under edge-to-edge (compose fills the whole window).
+                .imePadding()
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = TBSpace.LG),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(TBSpace.XXL))
 
             val storage = remember { TokenStorage() }
             val hasLoggedIn = remember { storage.hasLoggedInBefore() }
 
-            // Lottie Animation: cat_peek.json as Header Icon
-            TBLottie(
-                resPath = "files/cat_peek.json",
+            // Lottie peek card — surface-1 fill, hairline border, xl 16px corners.
+            Box(
                 modifier = Modifier
-                    .size(200.dp) // Enlarged as requested
-                    .clip(RoundedCornerShape(40.dp))
-                    .background(if (isDark) TBColors.SurfaceDark else Color.White, RoundedCornerShape(40.dp))
-                    .border(1.dp, if (isDark) TBColors.CardBorderDark else Color(0xFFF3F4F6), RoundedCornerShape(40.dp))
-                    .padding(24.dp),
-                iterations = Int.MAX_VALUE
-            )
+                    .size(120.dp)
+                    .clip(TBShapes.XL)
+                    .background(LinearColors.Surface1)
+                    .border(1.dp, LinearColors.Hairline, TBShapes.XL)
+                    .padding(TBSpace.MD),
+                contentAlignment = Alignment.Center
+            ) {
+                TBLottie(
+                    resPath = "files/cat_peek.json",
+                    modifier = Modifier.fillMaxSize(),
+                    iterations = Int.MAX_VALUE
+                )
+            }
 
-            Spacer(Modifier.height(32.dp))
-
-            Text(
-                text = if (hasLoggedIn) "Welcome Back!" else "Welcome to TemuBelajar",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isDark) TBColors.TextPrimaryDark else TBColors.TextPrimary,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(TBSpace.LG))
 
             Text(
-                text = "Sign in to start a video call with your friends,\nfamily, and peers.",
-                fontSize = 15.sp,
-                color = if (isDark) TBColors.TextSecondaryDark else TBColors.TextSecondary,
+                text = if (hasLoggedIn) "Welcome back" else "Find your study partner",
+                style = TBTypography.Headline,
+                color = LinearColors.Ink
+            )
+
+            Spacer(Modifier.height(TBSpace.SM))
+
+            Text(
+                text = if (hasLoggedIn)
+                    "Pick up where you left off."
+                else
+                    "Sign in to start a video call with peers across campuses.",
+                style = TBTypography.Body,
+                color = LinearColors.InkMuted,
                 textAlign = TextAlign.Center,
-                lineHeight = 22.sp,
-                modifier = Modifier.padding(horizontal = 20.dp)
+                modifier = Modifier.padding(horizontal = TBSpace.MD)
             )
 
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.height(TBSpace.XL))
 
             Column(
                 modifier = Modifier.widthIn(max = 400.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(TBSpace.MD)
             ) {
                 TBTextField(
                     value = state.email,
                     onValueChange = component::onEmailChange,
                     label = "Email",
-                    placeholder = "you@email.com",
+                    placeholder = "you@campus.edu",
                     leadingIcon = TablerIcons.Mail,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                 )
@@ -120,25 +110,16 @@ fun LoginScreen(component: LoginComponent) {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
                                     if (passwordVisible) TablerIcons.Eye else TablerIcons.EyeOff,
-                                    contentDescription = null,
-                                    tint = TBColors.Primary,
-                                    modifier = Modifier.size(20.dp)
+                                    // Phase 5.29 — Talkback reads "Hide password" /
+                                    // "Show password" instead of an unlabelled "Button".
+                                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                    tint = LinearColors.InkSubtle,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         },
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-                    )
-                    
-                    Text(
-                        text = "Forgot Password?",
-                        color = if (isDark) TBColors.TextSecondaryDark else TBColors.TextSecondary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .padding(top = 8.dp)
-                            .clickable { /* TODO */ }
                     )
                 }
 
@@ -146,58 +127,46 @@ fun LoginScreen(component: LoginComponent) {
                     TBErrorBanner(state.error!!)
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(TBSpace.SM))
 
                 TBPrimaryButton(
-                    text = "Login",
+                    // Phase 5.37 — mix of ID + EN labels in one auth flow is
+                    // jarring; standardise on ID ("Masuk") to match the rest
+                    // of the app ("Mulai mencari", "Menunggu video...", dst).
+                    text = "Masuk",
                     onClick = component::login,
                     isLoading = state.isLoading,
-                    icon = TablerIcons.Video
+                    icon = TablerIcons.ArrowRight
                 )
-
-                // Divider "or"
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                ) {
-                    HorizontalDivider(modifier = Modifier.weight(1f), color = if (isDark) Color.White.copy(0.1f) else Color.Black.copy(0.05f))
-                    Text(" or ", color = TBColors.TextMuted, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 12.dp))
-                    HorizontalDivider(modifier = Modifier.weight(1f), color = if (isDark) Color.White.copy(0.1f) else Color.Black.copy(0.05f))
-                }
-
-                // University Login Hint (Replacement for Google)
-                OutlinedButton(
-                    onClick = { /* University SSO if any */ },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = TBShapes.Button,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TBColors.TextPrimary),
-                    border = BorderStroke(1.dp, if (isDark) Color.White.copy(0.1f) else Color.Black.copy(0.1f))
-                ) {
-                    Text("Login with University ID", fontWeight = FontWeight.SemiBold)
-                }
+                // Phase 5.11 — removed the "Continue with University ID"
+                // placeholder and its accompanying "OR" eyebrow divider (the
+                // divider only made sense as a separator before that SSO
+                // button; without a second action it would be misleading
+                // scaffolding pointing at a flow that does not exist).
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(TBSpace.XL))
 
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Don't have an account? ",
-                    color = if (isDark) TBColors.TextSecondaryDark else TBColors.TextSecondary,
-                    fontSize = 14.sp
+                    // Phase 5.37 — match the rest of the IDs; EN fragment
+                    // reads as a translation accident next to "Daftar".
+                    "Belum punya akun? ",
+                    color = LinearColors.InkMuted,
+                    style = TBTypography.BodySM
                 )
                 Text(
-                    "Create Account",
-                    color = TBColors.Primary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable(onClick = component::goToRegister)
+                    "Daftar",
+                    color = LinearColors.PrimaryHover,
+                    style = TBTypography.BodySM.copy(fontWeight = FontWeight.Medium),
+                    modifier = Modifier.clickableRole(onClick = component::goToRegister)
                 )
             }
-            
-            Spacer(Modifier.height(60.dp))
+
+            Spacer(Modifier.height(TBSpace.XXL))
         }
     }
 }

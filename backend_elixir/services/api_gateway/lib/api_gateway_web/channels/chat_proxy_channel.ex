@@ -29,7 +29,7 @@ defmodule ApiGatewayWeb.ChatProxyChannel do
 
   @impl true
   def handle_in("msg", _, socket) do
-    {:reply, {:error, %{reason: "Message too long"}}, socket}
+    {:reply, {:error, %{reason: "Pesan terlalu panjang"}}, socket}
   end
 
   # Emoji — relay only to the OTHER peer
@@ -42,7 +42,7 @@ defmodule ApiGatewayWeb.ChatProxyChannel do
 
   @impl true
   def handle_in("emoji", _, socket) do
-    {:reply, {:error, %{reason: "Emoji payload too large"}}, socket}
+    {:reply, {:error, %{reason: "Emoji payload terlalu besar"}}, socket}
   end
 
   # Typing indicator — relay only to OTHER peer (no ack needed)

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 0.12 — cleartext is rejected for release builds. Only the
+     `debug` build variant permits cleartext so emulator runs against a
+     local api_gateway over HTTP remain usable during development. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <!-- Pin production API host TLS only; the OkHttp engine handles
+             pin validation when enablePinning=true is passed by DI. -->
+        <domain includeSubdomains="false">temubelajar.id</domain>
+        <pin-set expiration="2099-12-31">
+            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
+        </pin-set>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

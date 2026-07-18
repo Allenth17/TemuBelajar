@@ -138,7 +138,29 @@
         }
 
         function acquireStream() {
-            return navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            // Phase 4.22 — proper audio constraints (echo / NS / AGC) were
+            // previously declared in `WasmRtcInterop.kt:getUserMedia()` but
+            // never called from Kotlin (we use `window.__tbStream` exclusively
+            // to avoid synchronous getUserMedia freezes). That made the
+            // constraints dead code. Lift them into this JS-side call so the
+            // pre-acquired stream actually has AEC/NS/AGC enabled. Constraints
+            // mirror the Android audConstraints in TBWebRtcEngine.android.kt
+            // for parity. (The `goog*` keys are Chrome-specific; other browsers
+            // silently ignore unknown keys.)
+            return navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                    googAutoGainControl2: true,
+                    googEchoCancellation: true,
+                    googAutoGainControl: true,
+                    googNoiseSuppression: true,
+                    googHighpassFilter: true,
+                    channelCount: 1
+                }
+            })
                 .then(function(stream) {
                     window.__tbStream = stream;
                     overlay.classList.remove('visible');

@@ -6,9 +6,11 @@ services:
     image: postgres:15-alpine
     container_name: temubelajar_postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Allenth17
-      POSTGRES_DB: TemuBelajar
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      # Phase 0.11 / 0.9 — secrets MUST come from the host environment.
+      # We no longer ship a default here.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-TemuBelajar}
     ports:
       - "5432:5432"
     volumes:
@@ -27,11 +29,14 @@ services:
       dockerfile: Dockerfile
     container_name: auth_service
     environment:
-      DATABASE_URL: postgres://postgres:Allenth17@postgres:5432/temubelajar_auth
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/temubelajar_auth
       POOL_SIZE: "10"
-      SECRET_KEY_BASE: dev_secret_key_base_auth_service_at_least_64_chars_long_replace_in_production
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE_AUTH:?SECRET_KEY_BASE_AUTH is required}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:?INTERNAL_SECRET is required}
       PORT: "4001"
       EMAIL_SERVICE_URL: http://email_service:4005
+      SMTP_EMAIL: ${SMTP_EMAIL:?SMTP_EMAIL is required}
+      SMTP_PASS: ${SMTP_PASS:?SMTP_PASS is required}
       ELIXIR_ERL_OPTIONS: "+P 500000 +Q 65536 +MBas aobf +MBlmbcs 512"
     ports:
       - "4001:4001"
@@ -52,9 +57,10 @@ services:
       dockerfile: Dockerfile
     container_name: user_service
     environment:
-      DATABASE_URL: postgres://postgres:Allenth17@postgres:5432/temubelajar_user
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/temubelajar_user
       POOL_SIZE: "10"
-      SECRET_KEY_BASE: dev_secret_key_base_user_service_at_least_64_chars_long_replace_in_production
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE_USER:?SECRET_KEY_BASE_USER is required}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:?INTERNAL_SECRET is required}
       PORT: "4002"
       ELIXIR_ERL_OPTIONS: "+P 500000 +Q 65536 +MBas aobf +MBlmbcs 512"
     ports:
@@ -76,10 +82,11 @@ services:
       dockerfile: Dockerfile
     container_name: email_service
     environment:
-      SECRET_KEY_BASE: dev_secret_key_base_email_service_at_least_64_chars_long_replace_in_production
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE_EMAIL:?SECRET_KEY_BASE_EMAIL is required}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:?INTERNAL_SECRET is required}
       PORT: "4005"
-      SMTP_EMAIL: ${SMTP_EMAIL}
-      SMTP_PASS: ${SMTP_PASS}
+      SMTP_EMAIL: ${SMTP_EMAIL:?SMTP_EMAIL is required}
+      SMTP_PASS: ${SMTP_PASS:?SMTP_PASS is required}
       ELIXIR_ERL_OPTIONS: "+P 100000 +Q 16384 +MBas aobf +MBlmbcs 512"
     ports:
       - "4005:4005"
@@ -96,7 +103,8 @@ services:
       dockerfile: Dockerfile
     container_name: signaling_service
     environment:
-      SECRET_KEY_BASE: dev_secret_key_base_signaling_service_at_least_64_chars_long_replace_in_production
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE_SIGNALING:?SECRET_KEY_BASE_SIGNALING is required}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:?INTERNAL_SECRET is required}
       PORT: "4003"
       AUTH_SERVICE_URL: http://auth_service:4001
       MATCHMAKING_SERVICE_URL: http://matchmaking_service:4004
@@ -120,7 +128,9 @@ services:
       dockerfile: Dockerfile
     container_name: matchmaking_service
     environment:
-      SECRET_KEY_BASE: dev_secret_key_base_matchmaking_service_at_least_64_chars_long_replace_in_production
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE_MATCHMAKING:?SECRET_KEY_BASE_MATCHMAKING is required}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:?INTERNAL_SECRET is required}
+      API_GATEWAY_URL: http://api_gateway:4000
       PORT: "4004"
       AUTH_SERVICE_URL: http://auth_service:4001
       ELIXIR_ERL_OPTIONS: "+P 500000 +Q 65536 +MBas aobf +MBlmbcs 512"
@@ -144,7 +154,8 @@ services:
       dockerfile: Dockerfile
     container_name: api_gateway
     environment:
-      SECRET_KEY_BASE: dev_secret_key_base_api_gateway_at_least_64_chars_long_replace_in_production
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE_API_GATEWAY:?SECRET_KEY_BASE_API_GATEWAY is required}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:?INTERNAL_SECRET is required}
       PORT: "4000"
       AUTH_SERVICE_URL: http://auth_service:4001
       USER_SERVICE_URL: http://user_service:4002
@@ -152,6 +163,7 @@ services:
       SIGNALING_SERVICE_URL: http://signaling_service:4003
       MATCHMAKING_SERVICE_URL: http://matchmaking_service:4004
       SOCIAL_SERVICE_URL: http://social_service:4006
+      API_GATEWAY_SELF_URL: http://api_gateway:4000
       ELIXIR_ERL_OPTIONS: "+P 500000 +Q 65536 +MBas aobf +MBlmbcs 512"
     ports:
       - "4000:4000"
@@ -182,9 +194,10 @@ services:
       dockerfile: Dockerfile
     container_name: social_service
     environment:
-      DATABASE_URL: postgres://postgres:Allenth17@postgres:5432/temubelajar_social
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/temubelajar_social
       POOL_SIZE: "10"
-      SECRET_KEY_BASE: dev_secret_key_base_social_service_at_least_64_chars_long_replace_in_production
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE_SOCIAL:?SECRET_KEY_BASE_SOCIAL is required}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:?INTERNAL_SECRET is required}
       PORT: "4006"
       ELIXIR_ERL_OPTIONS: "+P 500000 +Q 65536 +MBas aobf +MBlmbcs 512"
     ports:

@@ -1,5 +1,18 @@
 import Config
 
+# Phase 0.9 / 0.11 — production secrets MUST come from env. We never
+# silently fall back to the publicly-known dev value in :prod.
+if config_env() == :prod do
+  System.get_env("SECRET_KEY_BASE") ||
+    raise "SECRET_KEY_BASE environment variable is missing — required in production"
+
+  internal_secret =
+    System.get_env("INTERNAL_SECRET") ||
+      raise "INTERNAL_SECRET environment variable is missing — required for service-to-service auth"
+
+  config :auth_service, internal_secret: internal_secret
+end
+
 # Database URL dari environment variable (override dev.exs)
 if database_url = System.get_env("DATABASE_URL") do
   config :auth_service, AuthService.Repo,
@@ -10,6 +23,10 @@ if database_url = System.get_env("DATABASE_URL") do
     queue_interval: 1000,
     ownership_timeout: 5000
 end
+
+config :auth_service,
+  internal_secret:
+    System.get_env("INTERNAL_SECRET") || "dev_internal_secret_replace_in_production"
 
 # Phoenix endpoint configuration
 config :auth_service, AuthServiceWeb.Endpoint,

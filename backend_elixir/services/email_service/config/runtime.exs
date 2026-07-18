@@ -1,5 +1,17 @@
 import Config
 
+if config_env() == :prod do
+  internal_secret =
+    System.get_env("INTERNAL_SECRET") ||
+      raise "INTERNAL_SECRET environment variable is missing — required for service-to-service auth"
+
+  config :email_service, internal_secret: internal_secret
+end
+
+config :email_service,
+  internal_secret:
+    System.get_env("INTERNAL_SECRET") || "dev_internal_secret_replace_in_production"
+
 # Phoenix endpoint configuration
 config :email_service, EmailServiceWeb.Endpoint,
   http: [
@@ -11,7 +23,7 @@ config :email_service, EmailServiceWeb.Endpoint,
   ],
   secret_key_base:
     System.get_env("SECRET_KEY_BASE") ||
-    "dev_secret_key_base_email_service_at_least_64_chars_long_replace_in_production"
+      "dev_secret_key_base_email_service_at_least_64_chars_long_replace_in_production"
 
 # SMTP config from environment
 config :email_service, EmailService.Mailer,

@@ -12,6 +12,36 @@ defmodule ApiGatewayWeb.SignalingProxyChannel do
   use ApiGatewayWeb, :channel
   require Logger
 
+  alias ApiGateway.AuthBridge
+
+  # Phase 8.10 (unblocks compile) — `terminate/3` (line ~133) and the explicit
+  # "leave" handle_in clause both call `notify_matchmaking_end_pair/1`, but the
+  # function definition was missing in the worktree (Phase 5.32 stub). Fire a
+  # best-effort HTTP POST to matchmaking_service's internal end-pair callback
+  # in a separate Task so terminate/3 doesn't block on the network (the channel
+  # process is being torn down). Internal-secret header authenticates the
+  # call against matchmaking_service's InternalAuth plug.
+  defp notify_matchmaking_end_pair(pair_id) when is_binary(pair_id) do
+    url = ApiGateway.Services.get_service_url(:matchmaking_service)
+    end_pair_url = "#{url}/api/matchmaking/end-pair"
+
+    body = Jason.encode!(%{"pair_id" => pair_id})
+
+    headers = [
+      {"Content-Type", "application/json"},
+      {"X-Internal-Secret", AuthBridge.internal_secret()}
+    ]
+
+    # Bounded HTTP opts — see gateway_controller.ex @downstream_opts. We
+    # don't await the result; matchmaking_service logs the failure if any.
+    Task.start(fn ->
+      HTTPoison.post(end_pair_url, body, headers,
+        recv_timeout: 3_000,
+        connect_timeout: 2_000
+      )
+    end)
+  end
+
   @ets_table :gateway_signaling_peers
 
   # STUN servers sent to clients on join
@@ -40,8 +70,8 @@ defmodule ApiGatewayWeb.SignalingProxyChannel do
         {:ok, %{status: "connected"}, socket}
 
       _ ->
-        Logger.warn("[SignalingProxy] Room full for pair #{pair_id}")
-        {:error, %{reason: "Room full"}}
+        Logger.warn("[SignalingProxy] Room penuh for pair #{pair_id}")
+        {:error, %{reason: "Room penuh"}}
     end
   end
 
@@ -62,6 +92,12 @@ defmodule ApiGatewayWeb.SignalingProxyChannel do
     })
 
     broadcast!(socket, "chat_reset", %{pair_id: socket.assigns.pair_id})
+
+    # Phase 5.32 — explicit graceful leave still tears down the pair on
+    # the matchmaking service side; without this the active_pairs ETS row
+    # would linger until the 15s/later-defensive heartbeat reaper.
+    notify_matchmaking_end_pair(socket.assigns.pair_id)
+
     {:noreply, socket}
   end
 
@@ -103,15 +139,26 @@ defmodule ApiGatewayWeb.SignalingProxyChannel do
   def handle_info(_, socket), do: {:noreply, socket}
 
   # ── terminate ────────────────────────────────────────────────────────────────
-
+  #
+  # Phase 5.32 — when a client disconnects the signaling WS without an
+  # explicit "leave" frame (network drop, app hard-quit, browser close),
+  # Phoenix calls terminate/3 with reason :normal / :shutdown. We must
+  # tell matchmaking_service to end the pair too, otherwise the
+  # `:active_pairs` entry lingers until the defensive heartbeat reaper
+  # (Phase 7.2) eventually culls it. The HTTP call is fired in a Task so
+  # the channel process (which is being torn down) doesn't block on it.
   @impl true
   def terminate(_reason, socket) do
-    unregister_peer(socket.assigns.pair_id, socket.assigns[:email] || socket.assigns[:token])
+    pair_id = socket.assigns.pair_id
+
+    unregister_peer(pair_id, socket.assigns[:email] || socket.assigns[:token])
 
     broadcast_from!(socket, "peer_left", %{
       reason: "peer_disconnected",
       peer_email: socket.assigns[:email]
     })
+
+    notify_matchmaking_end_pair(pair_id)
 
     :ok
   end

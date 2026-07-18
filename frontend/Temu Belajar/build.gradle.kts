@@ -1,10 +1,8 @@
 plugins {
-    // Root build — hanya declare plugins tanpa apply
-    alias(libs.plugins.androidApplication).apply(false)
-    alias(libs.plugins.androidLibrary).apply(false)
-    alias(libs.plugins.kotlinMultiplatform).apply(false)
-    alias(libs.plugins.composeMultiplatform).apply(false)
-    alias(libs.plugins.composeCompiler).apply(false)
-    alias(libs.plugins.jetbrains.kotlin.serialization).apply(false)
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.kmp.library) apply false
+    alias(libs.plugins.kotlin.multiplatform) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.compose.compiler) apply false
+    alias(libs.plugins.compose.multiplatform) apply false
 }
-// root build.gradle.kts

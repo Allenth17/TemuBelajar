@@ -1,13 +1,10 @@
-rootProject.name = "TemuBelajar"
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
-
 pluginManagement {
     repositories {
         google {
-            mavenContent {
-                includeGroupAndSubgroups("androidx")
-                includeGroupAndSubgroups("com.android")
-                includeGroupAndSubgroups("com.google")
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
             }
         }
         mavenCentral()
@@ -17,16 +14,9 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
-        google {
-            mavenContent {
-                includeGroupAndSubgroups("androidx")
-                includeGroupAndSubgroups("com.android")
-                includeGroupAndSubgroups("com.google")
-            }
-        }
+        google()
         mavenCentral()
-        // Jitpack for Sarxos webcam-capture
-        maven("https://jitpack.io")
+        maven("https://jitpack.io")  // Sarxos webcam-capture
     }
 }
 
@@ -34,10 +24,8 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-// ─── Modules ───────────────────────────────────────────────────────────────────
-include(":core")
-include(":core:webrtc")          // platform-native WebRTC engine (VP8 / H.264 / VP9)
-include(":feature:auth")
-include(":feature:home")
-include(":feature:videochat")
+rootProject.name = "TemuBelajar"
+
 include(":composeApp")
+include(":androidApp")
+include(":desktopApp")

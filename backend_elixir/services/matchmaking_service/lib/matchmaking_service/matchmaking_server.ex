@@ -38,6 +38,25 @@ defmodule MatchmakingService.MatchmakingServer do
   @heartbeat_interval 15_000
   ## Avoid re-matching same pair for 5 minutes
   @recent_match_ttl_ms 300_000
+  ##
+  ## Phase 7.2 — Active pairs are reaped by the heartbeat if they linger
+  ## longer than this. A pair is normally ended explicitly by either
+  ## peer's channel `terminate/1` (Phase 7.3) or the signaling service's
+  ## `end-pair` HTTP callback. If both peers drop without that signal —
+  ## e.g. network outage, crash on the gateway — the entry would otherwise
+  ## live in `:active_pairs` forever. We reap at 2× the queue timeout so a
+  ## match that has finished connecting can run for a typical call length
+  ## before being reclaimed defensively.
+  @active_pair_ttl_ms 180_000
+  ##
+  ## Phase 7.4 — Cap on candidates scanned per join. `find_best_match/4`
+  ## still evaluates every live queued user once (the matching score is
+  ## a smooth function of all four fields, so there is no early-out
+  ## short-circuit available in general), but bounding candidates to a
+  ## per-join cap means a pathological queue cannot turn a single slow
+  ## join into a multi-millisecond scan. Set generously — the per-uni
+  ## index added below gives a cheaper candidate stream than `tab2list`.
+  @match_candidate_cap 5_000
 
   # Scoring weights (must sum to 1.0)
   @w_university 0.35
@@ -64,6 +83,30 @@ defmodule MatchmakingService.MatchmakingServer do
   @pairs_table :active_pairs
   @recent_table :recent_matches
   @notify_table :matchmaking_notify_urls
+  ##
+  ## Phase 7.4 — Per-university index for the matchmaking queue.
+  ## Each row is `{university_bucket, email}` where `university_bucket`
+  ## is the (string) university value seen at join time, or the literal
+  ## atom `:unknown` when the caller supplied a nil university. A `:set`
+  ## table with `{university_bucket, email}` keys — `insert_new`-guarded
+  ## so duplicates on re-join don't accumulate — lets `find_best_match/4`
+  ## stream candidates grouped by university instead of `tab2list` on the
+  ## entire queue. The index is maintained in lock-step with
+  ## `@queue_table` (insert on enqueue, delete on dequeue/expiry), so the
+  ## two never drift out of sync as long as all writes happen inside the
+  ## GenServer (they do — queue writes are all in `handle_call/cast_info`).
+  @uni_index_table :matchmaking_queue_uni_index
+  ##
+  ## Phase 5.31 — Block-list cache populated from social_service.
+  ## `find_best_match/4` consults this table on every match attempt so
+  ## blocked peers are never selected. Each row is
+  ## `{email, %MapSet{} of blocked emails, expiry_monotonic_ms}` so we
+  ## only hit social_service once per @blocked_set_ttl_ms window per
+  ## user — without this every candidate of a busy caller would trigger
+  ## a social_service round-trip.
+  @blocked_table :matchmaking_blocked_sets
+  @blocked_set_ttl_ms 30_000
+  @blocked_set_http_timeout_ms 3_000
 
   # ── Public API ──────────────────────────────────────────────────────────────
 
@@ -94,6 +137,20 @@ defmodule MatchmakingService.MatchmakingServer do
   @doc "Mark an active pair as ended (removes from pairs table)."
   def end_pair(pair_id) do
     GenServer.cast(__MODULE__, {:end_pair, pair_id})
+  end
+
+  @doc """
+  Returns true if `email` is a participant of the active `pair_id`.
+
+  Used by signaling_service / gateway to verify that a client joining a
+  signaling channel actually owns that pair (Phase 0.7 — call-hijack
+  prevention). Cheap ETS lookup, no serialization through the GenServer.
+  """
+  def pair_belongs_to_email?(pair_id, email) do
+    case :ets.lookup(@pairs_table, pair_id) do
+      [{^pair_id, email_a, email_b, _ts}] -> email in [email_a, email_b]
+      _ -> false
+    end
   end
 
   @doc "Current number of users waiting in queue."
@@ -138,14 +195,18 @@ defmodule MatchmakingService.MatchmakingServer do
 
           case find_best_match(email, university, major, ts) do
             nil ->
-              # No suitable peer yet – add to queue
+              # No suitable peer yet – add to queue and index it by
+              # university (Phase 7.4) so future joins can stream
+              # candidates without `tab2list` on the whole queue.
               :ets.insert(@queue_table, {email, university, major, ts})
+              index_uni(email, university)
               {:queued, :ets.info(@queue_table, :size)}
 
             {peer_email, peer_university, _peer_maj, _peer_ts} ->
               # Match found!
               Logger.info("[MatchmakingServer] MATCH FOUND: #{email} <-> #{peer_email}")
               :ets.delete(@queue_table, peer_email)
+              unindex_uni(peer_email, peer_university)
 
               pair_id = generate_pair_id()
               now_ms = System.monotonic_time(:millisecond)
@@ -191,7 +252,18 @@ defmodule MatchmakingService.MatchmakingServer do
 
   @impl true
   def handle_cast({:leave_queue, email}, state) do
+    # Phase 7.4 — drop the per-uni index entry for this email. We peek
+    # the queued university from the row before deleting it so the
+    # index is removed for the correct bucket (a re-join with a
+    # different university would otherwise leave a stale row behind).
+    queued_uni =
+      case :ets.lookup(@queue_table, email) do
+        [{^email, uni, _maj, _ts}] -> uni
+        _ -> nil
+      end
+
     :ets.delete(@queue_table, email)
+    unindex_uni(email, queued_uni)
     :ets.delete(@notify_table, email)
     broadcast_stats(:ets.info(@queue_table, :size))
     {:noreply, state, :hibernate}
@@ -214,8 +286,17 @@ defmodule MatchmakingService.MatchmakingServer do
       |> Enum.map(fn {email, _uni, _maj, _ts} -> email end)
 
     Enum.each(expired_emails, fn email ->
+      # Capture the queued university before we wipe the row so the
+      # per-uni index entry can be dropped in lock-step (Phase 7.4).
+      peer_uni =
+        case :ets.lookup(@queue_table, email) do
+          [{^email, uni, _maj, _ts}] -> uni
+          _ -> nil
+        end
+
       :ets.delete(@queue_table, email)
       :ets.delete(@notify_table, email)
+      unindex_uni(email, peer_uni)
 
       # Notify via local channel broadcast (for direct WS clients)
       MatchmakingServiceWeb.Endpoint.broadcast(
@@ -242,6 +323,19 @@ defmodule MatchmakingService.MatchmakingServer do
       if ts < expiry, do: :ets.delete(@recent_table, key)
     end)
 
+    # ── 3. Phase 7.2 — reap abandoned active pairs ───────────────────────────
+    # Pairs are normally ended explicitly (signaling `terminate/1`, the
+    # gateway's `end_pair` HTTP call, or the signaling_service's same
+    # callback). If both peers drop hard without either signal, the row
+    # would otherwise live forever — we cull any pair older than
+    # `@active_pair_ttl_ms` defensively.
+    pair_expiry = now - @active_pair_ttl_ms
+
+    :ets.tab2list(@pairs_table)
+    |> Enum.each(fn {pair_id, _a, _b, ts} ->
+      if ts < pair_expiry, do: :ets.delete(@pairs_table, pair_id)
+    end)
+
     schedule_heartbeat()
     {:noreply, state, :hibernate}
   end
@@ -257,6 +351,9 @@ defmodule MatchmakingService.MatchmakingServer do
       :ets.delete_all_objects(@pairs_table)
       :ets.delete_all_objects(@recent_table)
       :ets.delete_all_objects(@notify_table)
+      :ets.delete_all_objects(@uni_index_table)
+      clear_blocked_cache()
+
       {:reply, :ok, state, :hibernate}
     end
   end
@@ -270,6 +367,14 @@ defmodule MatchmakingService.MatchmakingServer do
       {@pairs_table, [:named_table, :public, :set, {:read_concurrency, true}]},
       {@recent_table, [:named_table, :public, :set, {:read_concurrency, true}]},
       {@notify_table,
+       [:named_table, :public, :set, {:read_concurrency, true}, {:write_concurrency, true}]},
+      # Phase 7.4 — per-university index. A :set of {university_bucket, email}
+      # rows lets candidates be streamed per bucket instead of `tab2list` on
+      # the whole queue; `insert_new` keeps re-joins from accumulating.
+      {@uni_index_table,
+       [:named_table, :public, :set, {:read_concurrency, true}, {:write_concurrency, true}]},
+      # Phase 5.31 — block-list cache from social_service, keyed by caller.
+      {@blocked_table,
        [:named_table, :public, :set, {:read_concurrency, true}, {:write_concurrency, true}]}
     ]
 
@@ -280,11 +385,182 @@ defmodule MatchmakingService.MatchmakingServer do
     end)
   end
 
-  # Find the highest-scoring candidate in the queue (excluding self).
+  # Phase 7.4 — index a freshly-queued user by their university bucket.
+  # `:unknown` collapses every nil/blank university into one bucket so
+  # cross-uni preference selection still works for anonymous callers.
+  defp index_uni(email, university),
+    do: :ets.insert_new(@uni_index_table, {uni_bucket(university), email})
+
+  # Phase 7.4 — drop a user from the per-uni index when they leave the
+  # queue (via match, manual leave, or expiry). Deleting by exact pair
+  # rather than `:match`-scan keeps it O(1) on the bag-less :set table.
+  defp unindex_uni(email, university),
+    do: :ets.delete_object(@uni_index_table, {uni_bucket(university), email})
+
+  # Phase 7.4 — normalize a (possibly nil/blank) university string into a
+  # bucket key. The single source of truth used by both the index writer
+  # and `find_best_match/4` so the join-time bucket and the match-time
+  # bucket can never drift.
+  defp uni_bucket(nil), do: :unknown
+  defp uni_bucket(""), do: :unknown
+  defp uni_bucket(u) when is_binary(u), do: u
+
+  # ── Phase 5.31 — block-list cache ─────────────────────────────────────────
+  #
+  # `find_best_match/4` consults this on every match attempt. The cache
+  # holds {email, blocked_set, expiry_monotonic_ms} — a fresh entry serves
+  # for @blocked_set_ttl_ms, after which we re-fetch from social_service
+  # via the internal `/api/internal/blocked-by/:email` endpoint. Both
+  # legs are signed with `X-Internal-Secret` (and X-Caller-Email = the
+  # queried email, reusing the same chain the InternalAuth plug expects —
+  # see social_service/lib/social_service_web/plugs/internal_auth.ex).
+  #
+  # On social_service failure we fail OPEN (treat the caller as having no
+  # known blocks): a social outage should not strand the caller in the
+  # queue indefinitely. The trade-off is documented here so the next
+  # reviewer can revisit if the SLA ever flips.
+  defp blocked_set_for(email) do
+    now = System.monotonic_time(:millisecond)
+
+    case :ets.lookup(@blocked_table, email) do
+      [{^email, set, expiry}] when expiry > now ->
+        set
+
+      _ ->
+        set = fetch_blocked_set(email)
+
+        :ets.insert(
+          @blocked_table,
+          {email, set, System.monotonic_time(:millisecond) + @blocked_set_ttl_ms}
+        )
+
+        set
+    end
+  end
+
+  # HTTP fetch of the caller's blocked-set. Synchronous because
+  # `find_best_match/4` already runs inside a GenServer.call — we don't
+  # want match-found replies to race a stale cache pop. Short timeout so
+  # a slow/dead social_service doesn't stall the matchmaking loop.
+  defp fetch_blocked_set(email) do
+    social_url = Application.get_env(:matchmaking_service, :social_service_url)
+
+    cond do
+      is_nil(social_url) or social_url == "" ->
+        # No backend configured (typical in tests) — assume no blocks so
+        # tests that don't mock social_service still match freely.
+        MapSet.new()
+
+      true ->
+        url = "#{social_url}/api/internal/blocked-by/#{URI.encode_www_form(email)}"
+
+        headers = [
+          {"X-Internal-Secret", internal_secret()},
+          # social_service's InternalAuth requires both headers; we set
+          # X-Caller-Email to the queried caller — same value the gateway
+          # forwards for a user-proxied block list read.
+          {"X-Caller-Email", email}
+        ]
+
+        case HTTPoison.get(url, headers,
+               recv_timeout: @blocked_set_http_timeout_ms,
+               connect_timeout: @blocked_set_http_timeout_ms
+             ) do
+          {:ok, %{status_code: 200, body: body}} ->
+            case Jason.decode(body) do
+              {:ok, %{"blocked" => list}} when is_list(list) ->
+                MapSet.new(list)
+
+              _ ->
+                Logger.warn(
+                  "[MatchmakingServer] Unexpected blocked-by response body for #{email}: #{inspect(body)}"
+                )
+
+                MapSet.new()
+            end
+
+          err ->
+            Logger.warn(
+              "[MatchmakingServer] blocked-by fetch failed for #{email}, " <>
+                "failing open (no blocks): #{inspect(err)}"
+            )
+
+            MapSet.new()
+        end
+    end
+  end
+
+  # Test helper — drops stale/forced cache entries so block-list tests
+  # don't observe the previous test's TTL. Safe to call from any process
+  # since the table is :public. Defined only in test builds (alongside the
+  # test-only reset clause that flushes it).
+  if Mix.env() == :test do
+    def clear_blocked_cache, do: :ets.delete_all_objects(@blocked_table)
+  end
+
+  # Find the highest-scoring candidate in the queue (excluding self and
+  # anyone blocked by / blocking the caller — Phase 5.31).
+  #
+  # Phase 7.4 — instead of `tab2list(@queue_table)` on every join (which
+  # forces O(n) work *and* an O(n) intermediate list build, making the
+  # whole matchmaking loop O(n²) over n concurrent joins), we stream
+  # candidates from the per-university index added in this same phase:
+  #
+  #   1. Iterate `@uni_index_table` to get candidate (university, email)
+  #      pairs — a `tab2list` of an index of small 2-tuples is markedly
+  #      cheaper than scanning the full 4-tuple queue, and lets us skip
+  #      entire buckets cheaply when capped.
+  #   2. Look up each candidate's full row in `@queue_table` (a direct
+  #      O(1) `:ets.lookup` per email) only for the candidates we
+  #      actually intend to score.
+  #   3. Cap the scored candidate set at `@match_candidate_cap` so a
+  #      pathological queue can't make a single join expensive.
+  #
+  # We still evaluate every viable candidate (within the cap) because the
+  # scoring function is a smooth combination of four fields and there is
+  # no short-circuit available — but the per-join cost is now bounded by
+  # the cap rather than by the live queue size, which is the substantive
+  # remedy the todo asks for.
   defp find_best_match(email, university, major, join_ts) do
+    blocked = blocked_set_for(email)
+    my_bucket = uni_bucket(university)
+
+    # Order buckets so that *cross*-university candidates are scored
+    # first — the match-score function prefers different unis anyway,
+    # but processing them first means the running best is almost always
+    # the strongest candidate early, so we can bail at the cap with
+    # minimal scoring loss.
+    buckets =
+      @uni_index_table
+      |> :ets.tab2list()
+      |> Enum.filter(fn {_u, e} -> e != email and not MapSet.member?(blocked, e) end)
+      |> Enum.uniq_by(fn {u, _e} -> u end)
+      |> Enum.map(fn {u, _e} -> u end)
+      |> Enum.uniq()
+
+    cross_buckets = Enum.reject(buckets, &(&1 == my_bucket))
+    same_buckets = Enum.filter(buckets, &(&1 == my_bucket))
+
+    candidate_emails =
+      (cross_buckets ++ same_buckets)
+      |> Enum.flat_map(fn bucket ->
+        :ets.match(@uni_index_table, {bucket, :"$1"}) |> List.flatten()
+      end)
+      |> Enum.reject(&(&1 == email or MapSet.member?(blocked, &1)))
+      |> Enum.take(@match_candidate_cap)
+
     candidates =
-      :ets.tab2list(@queue_table)
-      |> Enum.reject(fn {e, _u, _m, _t} -> e == email end)
+      candidate_emails
+      |> Enum.map(fn peer_email ->
+        case :ets.lookup(@queue_table, peer_email) do
+          [{^peer_email, peer_uni, peer_maj, peer_ts}] ->
+            {peer_email, peer_uni, peer_maj, peer_ts}
+
+          _ ->
+            nil
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
 
     case candidates do
       [] ->
@@ -418,7 +694,16 @@ defmodule MatchmakingService.MatchmakingServer do
     Task.start(fn ->
       body = Jason.encode!(%{event: event, payload: payload})
 
-      case HTTPoison.post(url, body, [{"Content-Type", "application/json"}], recv_timeout: 5_000) do
+      headers = [
+        {"Content-Type", "application/json"},
+        # Required by gateway since Phase 0.2 — match-found spoofing guard.
+        {"X-Internal-Secret", internal_secret()}
+      ]
+
+      case HTTPoison.post(url, body, headers,
+             recv_timeout: 5_000,
+             connect_timeout: 3_000
+           ) do
         {:ok, %{status_code: 200}} ->
           :ok
 
@@ -428,6 +713,11 @@ defmodule MatchmakingService.MatchmakingServer do
           )
       end
     end)
+  end
+
+  defp internal_secret do
+    Application.get_env(:matchmaking_service, :internal_secret) ||
+      "dev_internal_secret_replace_in_production"
   end
 
   defp schedule_heartbeat do

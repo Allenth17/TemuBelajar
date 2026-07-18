@@ -22,4 +22,8 @@ defmodule ApiGateway.Services do
   def get_service_url(:matchmaking_service) do
     Application.get_env(:api_gateway, :matchmaking_service_url)
   end
+
+  def get_service_url(:social_service) do
+    Application.get_env(:api_gateway, :social_service_url)
+  end
 end

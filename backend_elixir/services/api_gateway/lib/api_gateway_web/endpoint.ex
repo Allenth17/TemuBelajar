@@ -11,8 +11,11 @@ defmodule ApiGatewayWeb.Endpoint do
     longpoll: false
   )
 
+  # Phase 8.16 — origin allowlist resolved at request-time from
+  # Application env (:cors_origins) by ApiGatewayWeb.CORS (see config/*.exs).
+  # Replaces the blanket `origin: "*"`.
   plug(CORSPlug,
-    origin: "*",
+    origin: &ApiGatewayWeb.CORS.origins/0,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     headers: ["Authorization", "Content-Type", "Accept"]
   )

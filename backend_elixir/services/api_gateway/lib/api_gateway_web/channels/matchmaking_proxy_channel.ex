@@ -49,7 +49,8 @@ defmodule ApiGatewayWeb.MatchmakingProxyChannel do
            "#{matchmaking_url}/api/matchmaking/join",
            Jason.encode!(body),
            [{"Content-Type", "application/json"}],
-           recv_timeout: 10_000
+           recv_timeout: 5_000,
+           connect_timeout: 3_000
          ) do
       {:ok, %{status_code: 200, body: res_body}} ->
         case Jason.decode(res_body) do
@@ -93,7 +94,9 @@ defmodule ApiGatewayWeb.MatchmakingProxyChannel do
       HTTPoison.post(
         "#{matchmaking_url}/api/matchmaking/leave",
         Jason.encode!(%{email: email}),
-        [{"Content-Type", "application/json"}]
+        [{"Content-Type", "application/json"}],
+        recv_timeout: 5_000,
+        connect_timeout: 3_000
       )
     end)
 
@@ -140,7 +143,9 @@ defmodule ApiGatewayWeb.MatchmakingProxyChannel do
         HTTPoison.post(
           "#{matchmaking_url}/api/matchmaking/leave",
           Jason.encode!(%{email: email}),
-          [{"Content-Type", "application/json"}]
+          [{"Content-Type", "application/json"}],
+          recv_timeout: 5_000,
+          connect_timeout: 3_000
         )
       end)
     end
@@ -158,7 +163,8 @@ defmodule ApiGatewayWeb.MatchmakingProxyChannel do
     case HTTPoison.get(
            "#{auth_url}/api/verify-token?token=#{URI.encode_www_form(token)}",
            [],
-           recv_timeout: 5_000
+           recv_timeout: 5_000,
+           connect_timeout: 3_000
          ) do
       {:ok, %{status_code: 200, body: body}} ->
         case Jason.decode(body) do

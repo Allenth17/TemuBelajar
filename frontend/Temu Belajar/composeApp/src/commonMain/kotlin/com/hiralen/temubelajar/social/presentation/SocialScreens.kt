@@ -1,6 +1,7 @@
 package com.hiralen.temubelajar.social.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -11,6 +12,7 @@ import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.hiralen.temubelajar.core.ui.*
@@ -18,7 +20,7 @@ import com.hiralen.temubelajar.social.component.*
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 
-// ─── Followers / Following screen ─────────────────────────────────────────────
+// ─── Followers / Following screen ────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,36 +36,34 @@ fun FollowersScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(title, fontWeight = FontWeight.SemiBold) },
+                title = { Text(title, style = TBTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(TablerIcons.ArrowLeft, contentDescription = "Kembali")
+                        Icon(TablerIcons.ArrowLeft, contentDescription = "Back", tint = LinearColors.Ink)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = TBColors.DarkBg,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = LinearColors.Canvas,
+                    titleContentColor = LinearColors.Ink,
+                    navigationIconContentColor = LinearColors.Ink
                 )
             )
         },
-        containerColor = TBColors.DarkBg
+        containerColor = LinearColors.Canvas
     ) { padding ->
-        if (isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = TBColors.Primary)
+        when {
+            isLoading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = LinearColors.Primary)
             }
-        } else if (emails.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(TablerIcons.Users, contentDescription = null, tint = Color.White.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
-                    Text("Belum ada pengguna", color = Color.White.copy(alpha = 0.5f), fontSize = 15.sp)
+            emails.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(TBSpace.XS)) {
+                    Icon(TablerIcons.Users, null, tint = LinearColors.InkTertiary, modifier = Modifier.size(48.dp))
+                    Text("No one yet", color = LinearColors.InkSubtle, style = TBTypography.Body)
                 }
             }
-        } else {
-            LazyColumn(
+            else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp)
+                contentPadding = PaddingValues(vertical = TBSpace.XS)
             ) {
                 items(emails) { email ->
                     UserListItem(
@@ -72,7 +72,7 @@ fun FollowersScreen(
                         trailingContent = if (onFollow != null) {
                             {
                                 TextButton(onClick = { onFollow(email) }) {
-                                    Text("Ikuti", color = TBColors.Primary, fontSize = 13.sp)
+                                    Text("Follow", color = LinearColors.PrimaryHover, style = TBTypography.BodySM)
                                 }
                             }
                         } else null
@@ -80,8 +80,8 @@ fun FollowersScreen(
                 }
                 if (onLoadMore != null) {
                     item {
-                        Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                            TextButton(onClick = onLoadMore) { Text("Muat lebih banyak", color = TBColors.Secondary) }
+                        Box(Modifier.fillMaxWidth().padding(TBSpace.MD), contentAlignment = Alignment.Center) {
+                            TextButton(onClick = onLoadMore) { Text("Muat lagi", color = LinearColors.InkSubtle) }
                         }
                     }
                 }
@@ -90,7 +90,7 @@ fun FollowersScreen(
     }
 }
 
-// ─── Friends screen ───────────────────────────────────────────────────────────
+// ─── Friends screen ──────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,37 +104,35 @@ fun FriendsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Teman", fontWeight = FontWeight.SemiBold) },
+                title = { Text("Friends", style = TBTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(TablerIcons.ArrowLeft, contentDescription = "Kembali")
+                        Icon(TablerIcons.ArrowLeft, contentDescription = "Back", tint = LinearColors.Ink)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = TBColors.DarkBg,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = LinearColors.Canvas,
+                    titleContentColor = LinearColors.Ink,
+                    navigationIconContentColor = LinearColors.Ink
                 )
             )
         },
-        containerColor = TBColors.DarkBg
+        containerColor = LinearColors.Canvas
     ) { padding ->
-        if (isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = TBColors.Primary)
+        when {
+            isLoading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = LinearColors.Primary)
             }
-        } else if (emails.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(TablerIcons.Heart, contentDescription = null, tint = Color.White.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
-                    Text("Belum ada teman", color = Color.White.copy(alpha = 0.5f), fontSize = 15.sp)
-                    Text("Temui orang baru via video chat!", color = Color.White.copy(alpha = 0.35f), fontSize = 13.sp)
+            emails.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(TBSpace.XS)) {
+                    Icon(TablerIcons.Heart, null, tint = LinearColors.InkTertiary, modifier = Modifier.size(48.dp))
+                    Text("No friends yet", color = LinearColors.InkSubtle, style = TBTypography.Body)
+                    Text("Meet new people via video chat!", color = LinearColors.InkTertiary, style = TBTypography.BodySM)
                 }
             }
-        } else {
-            LazyColumn(
+            else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp)
+                contentPadding = PaddingValues(vertical = TBSpace.XS)
             ) {
                 items(emails) { email ->
                     var showConfirm by remember { mutableStateOf(false) }
@@ -144,7 +142,7 @@ fun FriendsScreen(
                         onTap = { onProfileTap(email) },
                         trailingContent = {
                             TextButton(onClick = { showConfirm = true }) {
-                                Text("Hapus", color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f), fontSize = 13.sp)
+                                Text("Remove", color = LinearColors.Error.copy(alpha = 0.85f), style = TBTypography.BodySM)
                             }
                         }
                     )
@@ -152,14 +150,16 @@ fun FriendsScreen(
                     if (showConfirm) {
                         AlertDialog(
                             onDismissRequest = { showConfirm = false },
-                            title = { Text("Hapus teman?") },
-                            text = { Text("${email.substringBefore("@")} akan dihapus dari daftar temanmu.") },
+                            containerColor = LinearColors.Surface2,
+                            titleContentColor = LinearColors.Ink,
+                            title = { Text("Remove friend?") },
+                            text = { Text("${email.substringBefore("@")} will be removed from your friends list.", color = LinearColors.InkMuted) },
                             confirmButton = {
                                 TextButton(onClick = { onUnfriend(email); showConfirm = false }) {
-                                    Text("Hapus", color = MaterialTheme.colorScheme.error)
+                                    Text("Remove", color = LinearColors.Error)
                                 }
                             },
-                            dismissButton = { TextButton(onClick = { showConfirm = false }) { Text("Batal") } }
+                            dismissButton = { TextButton(onClick = { showConfirm = false }) { Text("Batal", color = LinearColors.InkSubtle) } }
                         )
                     }
                 }
@@ -173,7 +173,7 @@ fun FriendsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendRequestsScreen(
-    requests: List<String>,  // fromEmail list
+    requests: List<String>,
     isLoading: Boolean,
     onBack: () -> Unit,
     onAccept: (fromEmail: String) -> Unit,
@@ -182,26 +182,26 @@ fun FriendRequestsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Permintaan pertemanan", fontWeight = FontWeight.SemiBold) },
+                title = { Text("Friend requests", style = TBTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(TablerIcons.ArrowLeft, contentDescription = "Kembali")
+                        Icon(TablerIcons.ArrowLeft, contentDescription = "Back", tint = LinearColors.Ink)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = TBColors.DarkBg,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = LinearColors.Canvas,
+                    titleContentColor = LinearColors.Ink,
+                    navigationIconContentColor = LinearColors.Ink
                 )
             )
         },
-        containerColor = TBColors.DarkBg
+        containerColor = LinearColors.Canvas
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(vertical = 8.dp)) {
+        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(vertical = TBSpace.XS)) {
             if (requests.isEmpty() && !isLoading) {
                 item {
                     Box(Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Tidak ada permintaan", color = Color.White.copy(alpha = 0.5f))
+                        Text("No pending requests", color = LinearColors.InkSubtle, style = TBTypography.Body)
                     }
                 }
             }
@@ -212,14 +212,18 @@ fun FriendRequestsScreen(
                     trailingContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             TextButton(onClick = { onReject(fromEmail) }) {
-                                Text("Tolak", color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+                                Text("Decline", color = LinearColors.Error, style = TBTypography.BodySM)
                             }
                             Button(
                                 onClick = { onAccept(fromEmail) },
+                                shape = TBShapes.MD,
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = TBColors.Primary)
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = LinearColors.Primary,
+                                    contentColor = LinearColors.InverseCanvas
+                                )
                             ) {
-                                Text("Terima", fontSize = 13.sp)
+                                Text("Accept", style = TBTypography.BodySM)
                             }
                         }
                     }
@@ -229,7 +233,7 @@ fun FriendRequestsScreen(
     }
 }
 
-// ─── Shared UserListItem ──────────────────────────────────────────────────────
+// ─── Shared user row ─────────────────────────────────────────────────────────
 
 @Composable
 private fun UserListItem(
@@ -241,50 +245,47 @@ private fun UserListItem(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.Transparent)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = TBSpace.MD, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier
-                .weight(1f)
-                .clickable { onTap() }
+            horizontalArrangement = Arrangement.spacedBy(TBSpace.SM),
+            modifier = Modifier.weight(1f).clickable { onTap() }
         ) {
             Box(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(TBColors.Primary.copy(alpha = 0.7f)),
+                    .background(LinearColors.Surface2)
+                    .border(1.dp, LinearColors.Hairline, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = email.take(1).uppercase(),
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    color = LinearColors.Ink,
+                    style = TBTypography.Subhead.copy(fontWeight = FontWeight.SemiBold)
                 )
             }
             Column {
                 Text(
                     text = email.substringBefore("@"),
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp
+                    color = LinearColors.Ink,
+                    style = TBTypography.BodySM.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = email,
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 12.sp
+                    color = LinearColors.InkTertiary,
+                    style = TBTypography.Caption,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
-        if (trailingContent != null) {
-            trailingContent()
-        }
+        if (trailingContent != null) trailingContent()
     }
-    HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
+    HorizontalDivider(color = LinearColors.Hairline, modifier = Modifier.padding(horizontal = TBSpace.MD))
 }
-
-// ─── End of file ─────────────────────────────────────────────────────────────

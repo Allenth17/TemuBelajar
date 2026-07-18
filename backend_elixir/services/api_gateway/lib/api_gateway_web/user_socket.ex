@@ -2,43 +2,36 @@ defmodule ApiGatewayWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  channel "signaling:*", ApiGatewayWeb.SignalingProxyChannel
-  channel "matchmaking:*", ApiGatewayWeb.MatchmakingProxyChannel
-  channel "chat:*", ApiGatewayWeb.ChatProxyChannel
+  channel("signaling:*", ApiGatewayWeb.SignalingProxyChannel)
+  channel("matchmaking:*", ApiGatewayWeb.MatchmakingProxyChannel)
+  channel("chat:*", ApiGatewayWeb.ChatProxyChannel)
 
-  # Socket params are passed from the client and can
-  # be used to verify and authenticate a user. After
-  # verification, you can put default assigns into
-  # the socket that will be set for all channels, ie
-  #
-  #     {:ok, assign(socket, :user_id, verified_user_id)}
-  #
-  # To deny connection, return `:error`.
-  #
-  # See `Phoenix.Token` documentation for examples in
-  # performing token verification on connect.
+  # Validate the Bearer token against auth_service on connect and assign the
+  # verified `:email` so SignalingProxyChannel / MatchmakingProxyChannel /
+  # ChatProxyChannel can attribute messages safely (see 0.6). Any request
+  # without a valid token is rejected here.
   @impl true
-  def connect(params, socket, connect_info) do
+  def connect(%{"token" => token}, socket, connect_info) when byte_size(token) > 0 do
     peer_data = Map.get(connect_info, :peer_data)
-    token = params["token"]
-    
-    socket = socket
-    |> assign(:peer_data, peer_data)
-    |> assign(:token, token)
 
-    {:ok, socket}
+    case ApiGateway.AuthBridge.resolve_email(token) do
+      {:ok, email} ->
+        {:ok,
+         socket
+         |> assign(:peer_data, peer_data)
+         |> assign(:token, token)
+         |> assign(:email, email)}
+
+      {:error, _reason} ->
+        :error
+    end
   end
 
-  # Socket id's are topics that allow you to identify all sockets for a given user:
-  #
-  #     def id(socket), do: "users_socket:#{socket.assigns.user_id}"
-  #
-  # Would allow you to broadcast a "disconnect" event and terminate
-  # all active sockets and channels for a given user:
-  #
-  #     ApiGatewayWeb.Endpoint.broadcast("users_socket:#{user.id}", "disconnect", %{})
-  #
-  # Returning `nil` makes this socket anonymous.
+  def connect(_params, _socket, _connect_info), do: :error
+
+  # Returning a stable socket id per email lets us broadcast "disconnect"
+  # from logout / token-revocation flows and terminate the active socket
+  # (see 7.19) — stolen tokens can no longer persist after logout.
   @impl true
-  def id(_socket), do: nil
+  def id(socket), do: "users_socket:#{socket.assigns[:email]}"
 end

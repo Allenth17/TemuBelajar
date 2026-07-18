@@ -1,6 +1,7 @@
 package com.hiralen.temubelajar.social.component
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.hiralen.temubelajar.social.data.SocialRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +33,11 @@ class FollowersComponent(
 
     val title = if (type == Type.FOLLOWERS) "Pengikut" else "Mengikuti"
 
-    init { load() }
+    init {
+        load()
+        // Phase 1.1 — wire destroy to Decompose lifecycle (was dead code).
+        lifecycle.doOnDestroy { scope.cancel() }
+    }
 
     private fun load() {
         scope.launch {
@@ -45,8 +50,6 @@ class FollowersComponent(
     fun follow(targetEmail: String) {
         scope.launch { repository.follow(targetEmail) }
     }
-
-    fun onDestroy() { scope.cancel() }
 }
 
 // 2. Friends Component
@@ -63,7 +66,11 @@ class FriendsComponent(
     private val _state = MutableStateFlow(UserListState())
     val state: StateFlow<UserListState> = _state.asStateFlow()
 
-    init { load() }
+    init {
+        load()
+        // Phase 1.1 — wire destroy to Decompose lifecycle (was dead code).
+        lifecycle.doOnDestroy { scope.cancel() }
+    }
 
     private fun load() {
         scope.launch {
@@ -79,8 +86,6 @@ class FriendsComponent(
             load()
         }
     }
-
-    fun onDestroy() { scope.cancel() }
 }
 
 // 3. Friend Requests Component
@@ -96,7 +101,11 @@ class FriendRequestsComponent(
     private val _state = MutableStateFlow(UserListState())
     val state: StateFlow<UserListState> = _state.asStateFlow()
 
-    init { load() }
+    init {
+        load()
+        // Phase 1.1 — wire destroy to Decompose lifecycle (was dead code).
+        lifecycle.doOnDestroy { scope.cancel() }
+    }
 
     private fun load() {
         scope.launch {
@@ -119,6 +128,4 @@ class FriendRequestsComponent(
             load()
         }
     }
-
-    fun onDestroy() { scope.cancel() }
 }

@@ -30,11 +30,13 @@ defmodule AuthService.MixProject do
       # Web framework — uses Bandit (not Cowboy) for lower memory usage
       {:phoenix, "~> 1.7.18"},
       {:phoenix_ecto, "~> 4.4"},
-      {:ecto_sql, "~> 3.10.0"},
+      # Phase 8.12 — relax the patch-level pin so Ecto 3.10+ (including 3.11)
+      # resolves; align the bandit pin to the rest of the services (`~> 1.10`).
+      {:ecto_sql, "~> 3.10"},
       {:postgrex, "~> 0.17.0"},
       {:jason, "~> 1.2"},
       {:cors_plug, "~> 3.0"},
-      {:bandit, "~> 1.5"},
+      {:bandit, "~> 1.10"},
 
       # Password hashing — bcrypt_elixir already includes comeonin behaviour
       {:bcrypt_elixir, "~> 3.0"},
@@ -61,5 +63,4 @@ defmodule AuthService.MixProject do
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"]
     ]
   end
-
 end

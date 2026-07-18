@@ -36,10 +36,15 @@ defmodule ApiGateway.MixProject do
 
       # HTTP client for proxying requests to microservices
       {:httpoison, "~> 2.0"},
-
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
-      {:gettext, "~> 0.20"}
+      {:gettext, "~> 0.20"},
+
+      # Phase 8.10 — test-only Mox so router_test can stub the downstream
+      # HTTP layer and the auth bridge instead of asserting on the loose
+      # set [200,201,400,401,404,422,503] (which silently passes when the
+      # upstream is down).
+      {:mox, "~> 1.0", only: :test}
     ]
   end
 

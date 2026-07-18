@@ -1,5 +1,13 @@
 import Config
 
+if config_env() == :prod do
+  internal_secret =
+    System.get_env("INTERNAL_SECRET") ||
+      raise "INTERNAL_SECRET environment variable is missing — required for service-to-service auth"
+
+  config :signaling_service, internal_secret: internal_secret
+end
+
 # Phoenix endpoint configuration
 config :signaling_service, SignalingServiceWeb.Endpoint,
   http: [
@@ -15,9 +23,8 @@ config :signaling_service, SignalingServiceWeb.Endpoint,
   render_errors: [view: SignalingServiceWeb.ErrorView, accepts: ~w(json), layout: false],
   pubsub_server: SignalingService.PubSub
 
-
 config :signaling_service,
-  auth_service_url:
-    System.get_env("AUTH_SERVICE_URL") || "http://localhost:4001",
-  matchmaking_service_url:
-    System.get_env("MATCHMAKING_SERVICE_URL") || "http://localhost:4004"
+  auth_service_url: System.get_env("AUTH_SERVICE_URL") || "http://localhost:4001",
+  matchmaking_service_url: System.get_env("MATCHMAKING_SERVICE_URL") || "http://localhost:4004",
+  internal_secret:
+    System.get_env("INTERNAL_SECRET") || "dev_internal_secret_replace_in_production"

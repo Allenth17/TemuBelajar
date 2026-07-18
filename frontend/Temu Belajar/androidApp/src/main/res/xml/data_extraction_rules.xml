@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 0.15 / 8.18 — disable backup of all locally-stored secrets
+     (token in SharedPreferences, key material, etc.). The manifest also
+     sets android:fullBackupContent=false and android:allowBackup=false
+     but Android 12+ honors dataExtractionRules as the authoritative rule. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+    </device-transfer>
+</data-extraction-rules>

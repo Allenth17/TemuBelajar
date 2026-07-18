@@ -12,7 +12,13 @@ defmodule SignalingServiceWeb.ChatChannel do
     - No ETS state — the channel process itself holds no message list server-side
 
   Message format (client → server → broadcast):
-    %{"text" => "hello", "timestamp" => 1234567890}
+    %{"text" => "hello", "timestamp" => "2024-12-31T15:30:00.123Z"}
+
+  Phase 3.17 — `timestamp` is now ISO 8601 (UTC, millisecond-precise) for API
+  consistency with the rest of the backend (Ecto's `:utc_datetime` columns,
+  e.g. `friend_requests.inserted_at`). Previously this used
+  `:os.system_time(:millisecond)` (epoch Long), which forced every client to
+  know two unrelated representations depending on which surface it touched.
 
   Events emitted:
     "msg"        — new message from partner
@@ -27,31 +33,52 @@ defmodule SignalingServiceWeb.ChatChannel do
   @max_message_length 1_000
   @max_emoji_bytes 200
 
+  # Phase 0.7 — gate channel join on pair ownership, exactly like the
+  # signaling channel. Without this an attacker could subscribe to
+  # "chat:<guessed_pair_id>" and silently read the partner's chat.
   def join("chat:" <> pair_id, _payload, socket) do
-    socket = assign(socket, :pair_id, pair_id)
-    {:ok, %{pair_id: pair_id}, socket}
+    email = socket.assigns[:email]
+
+    cond do
+      is_nil(email) ->
+        {:error, %{reason: "Unauthenticated"}}
+
+      not SignalingServiceWeb.SignalingChannel.verify_pair_ownership?(pair_id, email) ->
+        Logger.warn("[ChatChannel] Reject join pair=#{pair_id} email=#{email} — not owner")
+        {:error, %{reason: "Pair not found or not owned by caller"}}
+
+      true ->
+        socket = assign(socket, :pair_id, pair_id)
+        {:ok, %{pair_id: pair_id}, socket}
+    end
   end
 
   # ── Text message ─────────────────────────────────────────────────────────────
 
   def handle_in("msg", %{"text" => text} = payload, socket)
-    when byte_size(text) > @max_message_length do
-    {:reply, {:error, %{reason: "Pesan terlalu panjang (max #{@max_message_length} karakter)"}}, socket}
+      when byte_size(text) > @max_message_length do
+    {:reply, {:error, %{reason: "Pesan terlalu panjang (max #{@max_message_length} karakter)"}},
+     socket}
   end
 
   def handle_in("msg", %{"text" => text} = _payload, socket) do
     broadcast_from!(socket, "msg", %{
       text: text,
       from: socket.assigns.email,
-      timestamp: :os.system_time(:millisecond)
+      # Phase 3.17 — ISO 8601 UTC string, consistent with Ecto's
+      # `:utc_datetime` columns across the backend. Client parses with
+      # `kotlinx.datetime.Instant.parse(...)` (Android/JS/WASM/Native all
+      # share the same IMPL).
+      timestamp: DateTime.utc_now() |> DateTime.truncate(:millisecond) |> DateTime.to_iso8601()
     })
+
     {:noreply, socket}
   end
 
   # ── Emoji message ─────────────────────────────────────────────────────────────
 
   def handle_in("emoji", %{"emoji" => emoji} = _payload, socket)
-    when byte_size(emoji) > @max_emoji_bytes do
+      when byte_size(emoji) > @max_emoji_bytes do
     {:reply, {:error, %{reason: "Emoji payload terlalu besar"}}, socket}
   end
 
@@ -59,8 +86,10 @@ defmodule SignalingServiceWeb.ChatChannel do
     broadcast_from!(socket, "emoji", %{
       emoji: emoji,
       from: socket.assigns.email,
-      timestamp: :os.system_time(:millisecond)
+      # Phase 3.17 — see "msg" handler for rationale.
+      timestamp: DateTime.utc_now() |> DateTime.truncate(:millisecond) |> DateTime.to_iso8601()
     })
+
     {:noreply, socket}
   end
 
@@ -78,6 +107,7 @@ defmodule SignalingServiceWeb.ChatChannel do
       reason: "peer_left",
       pair_id: socket.assigns.pair_id
     })
+
     {:noreply, socket}
   end
 
@@ -89,6 +119,7 @@ defmodule SignalingServiceWeb.ChatChannel do
       reason: "peer_disconnected",
       pair_id: socket.assigns[:pair_id]
     })
+
     :ok
   end
 end

@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">TemuBelajar</string>
+    <string name="app_tagline">Study together, instantly.</string>
+
+    <!-- Auth & sessions. -->
+    <string name="auth_login_title">Sign in to TemuBelajar</string>
+    <string name="auth_register_title">Create your TemuBelajar account</string>
+    <string name="auth_otp_title">Enter your email code</string>
+    <string name="auth_logout">Log out</string>
+
+    <!-- Match / matchmaking. -->
+    <string name="match_find_partner_button">Find study partner</string>
+    <string name="match_next_button">Next</string>
+    <string name="match_status_searching">Searching for a study partner…</string>
+    <string name="match_status_matched">Matched!</string>
+    <string name="match_status_disconnected">Peer disconnected.</string>
+
+    <!-- Errors / banners. -->
+    <string name="error_generic">Oops, something went wrong.</string>
+    <string name="error_network_offline">Couldn\'t reach the server. Check your connection.</string>
+    <string name="error_match_timeout">No study partners free right now. Please try again.</string>
+    <string name="error_auth_invalid">Email or code was invalid.</string>
+</resources>

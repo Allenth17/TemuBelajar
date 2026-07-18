@@ -6,7 +6,11 @@ config :temubelajar, TemuBelajar.Repo,
   hostname: "localhost",
   database: "temubelajar_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2
+  pool_size: System.schedulers_online() * 2,
+  # Phase 8.17 — only enable sensitive connection errors in :test, where
+  # being able to read the URL on a failed sandbox connect is a debugging
+  # aid and never leaves the dev's machine.
+  show_sensitive_data_on_connection_error: true
 
 config :temubelajar, TemuBelajarWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],

@@ -11,9 +11,14 @@ config :auth_service, AuthService.Repo,
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
+# Phase 8.15 — bump test port to 4012. The previous 4002 collided with
+# user_service's dev/prod port (user_service/config/dev.exs:23), causing
+# "address already in use" when auth_service tests ran while user_service
+# was up in a dev shell.
 config :auth_service, AuthServiceWeb.Endpoint,
-  http: [ip: {127, 0, 0, 1}, port: 4002],
-  secret_key_base: "test_secret_key_base_auth_service_at_least_64_chars_long_replace_in_production",
+  http: [ip: {127, 0, 0, 1}, port: 4012],
+  secret_key_base:
+    "test_secret_key_base_auth_service_at_least_64_chars_long_replace_in_production",
   server: false
 
 # Print only warnings and errors during test

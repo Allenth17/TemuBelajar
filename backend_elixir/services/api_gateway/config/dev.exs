@@ -1,5 +1,17 @@
 import Config
 
+# Phase 8.16 — dev CORS allowlist defaults to "*" so local emulators and
+# the npm run dev forge work without extra setup. Override by setting
+# CORS_ALLOWED_ORIGINS=https://localhost:3000,... in .env before start_all.
+allowed =
+  case System.get_env("CORS_ALLOWED_ORIGINS") do
+    nil -> ["*"]
+    "" -> []
+    raw -> raw |> String.split(",", trim: true) |> Enum.map(&String.trim/1)
+  end
+
+config :api_gateway, cors_origins: allowed
+
 config :api_gateway, ApiGatewayWeb.Endpoint,
   adapter: Bandit.PhoenixAdapter,
   http: [

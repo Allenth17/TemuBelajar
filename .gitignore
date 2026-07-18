@@ -2,6 +2,7 @@
 .idea/
 .kilo/
 *.iml
+todos.md
 
 # Environment secrets
 **/.env
@@ -13,6 +14,7 @@
 **/deps/
 **/node_modules/
 **/*.log
+**/*.apk
 frontend/Temu Belajar/build_errors*.txt
 frontend/Temu Belajar/build_log.txt
 frontend/Temu Belajar/compile_log.txt

@@ -27,11 +27,13 @@ defmodule SocialService.MixProject do
     [
       {:phoenix, "~> 1.7.18"},
       {:phoenix_ecto, "~> 4.4"},
-      {:ecto_sql, "~> 3.10.0"},
+      # Phase 8.12 — relax the patch-level pin to `~> 3.10` (covers 3.11)
+      # and align bandit to the rest of the services at `~> 1.10`.
+      {:ecto_sql, "~> 3.10"},
       {:postgrex, "~> 0.17.0"},
       {:jason, "~> 1.2"},
       {:cors_plug, "~> 3.0"},
-      {:bandit, "~> 1.5"},
+      {:bandit, "~> 1.10"},
       {:httpoison, "~> 2.0"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"}

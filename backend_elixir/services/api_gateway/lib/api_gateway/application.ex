@@ -22,6 +22,7 @@ defmodule ApiGateway.Application do
 
     children = [
       ApiGatewayWeb.Telemetry,
+      ApiGateway.AuthBridge,
       {Phoenix.PubSub, name: ApiGateway.PubSub},
       ApiGatewayWeb.Endpoint
     ]
